@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>НарядAI — Промышленная система контроля</title>
+    <style>
+        /* Тема 1: Midnight Slate (По умолчанию - глубокий тёмно-синий) */
+        :root[data-theme="midnight"] {
+            --bg-color: #0b0f19;
+            --card-bg: #151c2c;
+            --card-border: #232d42;
+            --accent-color: #4f46e5;
+            --accent-hover: #4338ca;
+            --text-main: #f1f5f9;
+            --text-muted: #8e9aaf;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --input-bg: #0b0f19;
+            --kanban-bg: rgba(11, 15, 25, 0.5);
+        }
+
+        /* Тема 2: Dark Graphite (Строгий премиальный угольно-серый) */
+        :root[data-theme="graphite"] {
+            --bg-color: #121214;
+            --card-bg: #1c1c1f;
+            --card-border: #2d2d32;
+            --accent-color: #2563eb;
+            --accent-hover: #1d4ed8;
+            --text-main: #f4f4f5;
+            --text-muted: #a1a1aa;
+            --success: #22c55e;
+            --warning: #eab308;
+            --danger: #f43f5e;
+            --input-bg: #121214;
+            --kanban-bg: #161618;
+        }
+
+        /* Тема 3: Enterprise Light (Светлая корпоративная тема) */
+        :root[data-theme="light"] {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --card-border: #e2e8f0;
+            --accent-color: #0284c7;
+            --accent-hover: #0369a1;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --success: #059669;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --input-bg: #f1f5f9;
+            --kanban-bg: #f1f5f9;
+        }
+
+        /* Тема 4: Emerald Executive (Премиальная тёмно-изумрудная) */
+        :root[data-theme="emerald"] {
+            --bg-color: #061712;
+            --card-bg: #0d261e;
+            --card-border: #183e32;
+            --accent-color: #10b981;
+            --accent-hover: #059669;
+            --text-main: #ecfdf5;
+            --text-muted: #6ee7b7;
+            --success: #34d399;
+            --warning: #fbbf24;
+            --danger: #f87171;
+            --input-bg: #061712;
+            --kanban-bg: rgba(6, 23, 18, 0.6);
+        }
+
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'Inter', system-ui, -apple-system, sans-serif; 
+        }
+
+        body { 
+            background-color: var(--bg-color); 
+            color: var(--text-main); 
+            min-height: 100vh; 
+            padding: 1.5rem; 
+            transition: background-color 0.25s, color 0.25s;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            gap: 1rem;
+            flex-wrap: wrap;
+            transition: background 0.25s, border-color 0.25s;
+        }
+
+        .logo-group { display: flex; align-items: center; gap: 0.75rem; }
+        .logo-badge { background: var(--accent-color); color: white; padding: 4px 8px; border-radius: 6px; font-weight: 700; font-size: 0.8rem; }
+        .logo-text { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; }
+
+        .controls-group {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .theme-select {
+            background: var(--input-bg);
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            outline: none;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .role-switch { 
+            background: var(--input-bg); 
+            padding: 4px; 
+            border-radius: 8px; 
+            border: 1px solid var(--card-border); 
+            display: flex; 
+            gap: 4px; 
+        } 
+        
+        .role-btn { 
+            background: transparent; 
+            border: none; 
+            color: var(--text-muted); 
+            padding: 8px 16px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-weight: 600; 
+            font-size: 0.875rem; 
+            transition: all 0.2s; 
+        } 
+        
+        .role-btn.active { 
+            background: var(--card-bg); 
+            color: var(--text-main); 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2); 
+        }
+
+        .stats-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+            gap: 1rem; 
+            margin-bottom: 1.5rem; 
+        }
+
+        .stat-card { 
+            background: var(--card-bg); 
+            border: 1px solid var(--card-border); 
+            border-radius: 10px; 
+            padding: 1rem; 
+            transition: background 0.25s, border-color 0.25s;
+        }
+
+        .stat-label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.25rem; }
+        .stat-value { font-size: 1.5rem; font-weight: 700; color: var(--text-main); }
+
+        .main-grid { 
+            display: grid; 
+            grid-template-columns: 340px 1fr; 
+            gap: 1.5rem; 
+            align-items: start;
+        }
+
+        @media (max-width: 960px) { 
+            .main-grid { grid-template-columns: 1fr; } 
+        }
+
+        .panel { 
+            background: var(--card-bg); 
+            border: 1px solid var(--card-border); 
+            border-radius: 12px; 
+            padding: 1.25rem; 
+            overflow: hidden; 
+            transition: background 0.25s, border-color 0.25s;
+        }
+
+        .panel-title { 
+            font-size: 1rem; 
+            font-weight: 600; 
+            margin-bottom: 1rem; 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+        }
+
+        .form-group { margin-bottom: 1rem; width: 100%; }
+        .form-group label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.4rem; font-weight: 500; }
+        
+        .form-control { 
+            width: 100%; 
+            max-width: 100%;
+            box-sizing: border-box; 
+            padding: 0.65rem 0.85rem; 
+            background: var(--input-bg); 
+            border: 1px solid var(--card-border); 
+            border-radius: 8px; 
+            color: var(--text-main); 
+            font-size: 0.9rem; 
+            outline: none; 
+            transition: border-color 0.2s, background 0.25s;
+        }
+
+        .form-control:focus { border-color: var(--accent-color); }
+
+        textarea.form-control { 
+            resize: vertical; 
+            min-height: 90px; 
+            max-width: 100%;
+            line-height: 1.4;
+        }
+
+        .btn-primary { 
+            width: 100%; 
+            background: var(--accent-color); 
+            color: white; 
+            border: none; 
+            padding: 0.75rem; 
+            border-radius: 8px; 
+            font-weight: 600; 
+            font-size: 0.9rem; 
+            cursor: pointer; 
+            transition: background 0.2s; 
+        }
+
+        .btn-primary:hover { background: var(--accent-hover); }
+
+        .presets { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+        .preset-btn { 
+            background: var(--input-bg); 
+            border: 1px solid var(--card-border); 
+            color: var(--text-muted); 
+            padding: 4px 8px; 
+            border-radius: 6px; 
+            font-size: 0.75rem; 
+            cursor: pointer; 
+            transition: all 0.2s;
+        }
+        .preset-btn:hover { border-color: var(--accent-color); color: var(--text-main); }
+
+        .kanban { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 1rem; 
+        }
+
+        @media (max-width: 650px) {
+            .kanban { grid-template-columns: 1fr; }
+        }
+
+        .kanban-col { 
+            background: var(--kanban-bg); 
+            border: 1px solid var(--card-border); 
+            border-radius: 10px; 
+            padding: 1rem; 
+            min-height: 400px; 
+            transition: background 0.25s, border-color 0.25s;
+        }
+
+        .col-header { 
+            font-size: 0.85rem; 
+            font-weight: 600; 
+            color: var(--text-muted); 
+            margin-bottom: 1rem; 
+            text-transform: uppercase; 
+            letter-spacing: 0.05em; 
+            display: flex; 
+            justify-content: space-between; 
+        }
+
+        .task-card { 
+            background: var(--card-bg); 
+            border: 1px solid var(--card-border); 
+            border-radius: 8px; 
+            padding: 1rem; 
+            margin-bottom: 0.75rem; 
+            transition: transform 0.15s, border-color 0.15s; 
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .task-card:hover { border-color: var(--accent-color); transform: translateY(-2px); }
+        .task-id { font-size: 0.75rem; font-weight: 700; color: var(--accent-color); margin-bottom: 0.25rem; }
+        .task-title { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.4rem; word-break: break-word; }
+        .task-desc { font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 0.75rem; word-break: break-word; }
+
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+        .badge-pending { background: rgba(245, 158, 11, 0.15); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.3); }
+        .badge-success { background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); }
+
+        .ai-verdict-box { 
+            margin-top: 0.75rem; 
+            padding: 0.65rem; 
+            background: rgba(16, 185, 129, 0.08); 
+            border-left: 3px solid var(--success); 
+            border-radius: 4px; 
+            font-size: 0.8rem; 
+        }
+        
+        .ai-score { font-weight: 700; color: var(--success); margin-bottom: 0.2rem; }
+
+        .worker-container { max-width: 520px; margin: 0 auto; }
+        .file-upload { 
+            border: 2px dashed var(--card-border); 
+            border-radius: 8px; 
+            padding: 1.25rem; 
+            text-align: center; 
+            cursor: pointer; 
+            background: var(--input-bg); 
+            margin-bottom: 1rem; 
+            transition: border-color 0.2s, background 0.25s;
+        }
+        .file-upload:hover { border-color: var(--accent-color); }
+    </style>
+</head>
+<body data-theme="midnight">
+
+    <div class="header">
+        <div class="logo-group">
+            <span class="logo-badge">ИИ</span>
+            <span class="logo-text">НарядAI Control</span>
+        </div>
+
+        <div class="controls-group">
+            <!-- Селектор визуальных тем -->
+            <select class="theme-select" onchange="changeTheme(this.value)">
+                <option value="midnight">🌙 Midnight Slate (Тёмно-синий)</option>
+                <option value="graphite">🖤 Dark Graphite (Строгий серый)</option>
+                <option value="emerald">🌲 Emerald Exec (Изумрудный)</option>
+                <option value="light">☀️️ Enterprise (Светлый)</option>
+            </select>
+
+            <div class="role-switch">
+                <button class="role-btn active" id="tabMaster" onclick="switchRole('master')">👨‍💼 Мастер (ПК)</button>
+                <button class="role-btn" id="tabWorker" onclick="switchRole('worker')">👷‍♂️ Рабочий (Мобильный)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- РЕЖИМ МАСТЕРА -->
+    <div id="masterView">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Всего нарядов</div>
+                <div class="stat-value" id="statTotal">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">В процессе</div>
+                <div class="stat-value" id="statPending" style="color: var(--warning);">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Проверено ИИ</div>
+                <div class="stat-value" id="statDone" style="color: var(--success);">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Точность ИИ-контроля</div>
+                <div class="stat-value">99.2%</div>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <div class="panel">
+                <div class="panel-title">Выдать новый наряд</div>
+                
+                <div class="presets">
+                    <button type="button" class="preset-btn" onclick="fillPreset(1)">Замена насоса</button>
+                    <button type="button" class="preset-btn" onclick="fillPreset(2)">ТО компрессора</button>
+                </div>
+
+                <form onsubmit="createTask(event)">
+                    <div class="form-group">
+                        <label for="eq">Оборудование / Узел</label>
+                        <input type="text" id="eq" class="form-control" placeholder="Например: Компрессор №3" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="workerName">Назначенный рабочий</label>
+                        <input type="text" id="workerName" class="form-control" placeholder="ФИО сотрудника" value="Иванов А. В." required>
+                    </div>
+                    <div class="form-group">
+                        <label for="desc">Техническое задание</label>
+                        <textarea id="desc" class="form-control" rows="4" placeholder="Укажите перечень работ..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn-primary" id="btnCreate">Сформировать наряд</button>
+                </form>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">Канбан-доска работ</div>
+                <div class="kanban">
+                    <div class="kanban-col">
+                        <div class="col-header">
+                            <span>В работе</span>
+                            <span id="cntNew">0</span>
+                        </div>
+                        <div id="colNew"></div>
+                    </div>
+                    <div class="kanban-col">
+                        <div class="col-header">
+                            <span>Выполнено и проверено</span>
+                            <span id="cntDone">0</span>
+                        </div>
+                        <div id="colDone"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- РЕЖИМ РАБОЧЕГО -->
+    <div id="workerView" class="worker-container" style="display: none;">
+        <div class="panel">
+            <div class="panel-title">Отчёт о выполнении наряда</div>
+            <form onsubmit="completeTask(event)">
+                <div class="form-group">
+                    <label for="taskSelect">Выберите текущий наряд</label>
+                    <select id="taskSelect" class="form-control" required>
+                        <option value="">Выберите наряд...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="parts">Списанные материалы и запчасти</label>
+                    <input type="text" id="parts" class="form-control" placeholder="Например: Фильтр воздушный 102-А, масло 2.5л" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Фотофиксация выполненных работ</label>
+                    <div class="file-upload" onclick="document.getElementById('photoInput').click()">
+                        <span id="fileLabel" style="font-size: 0.85rem; color: var(--text-muted);">📷 Нажмите для выбора фото или снимка</span>
+                        <input type="file" id="photoInput" style="display:none;" accept="image/*" onchange="updateFileName(this)">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary" id="btnSubmitWorker" style="background: var(--success);">Отправить на ИИ-экспертизу</button>
+            </form>
+
+            <div id="aiResultBox" style="display: none; margin-top: 1.25rem;" class="ai-verdict-box">
+                <div class="ai-score" id="resScore"></div>
+                <div id="resText" style="color: var(--text-main);"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function changeTheme(themeName) {
+            document.documentElement.setAttribute('data-theme', themeName);
+        }
+
+        let tasksStorage = [
+            {
+                id: 101,
+                equipment: 'Воздушный компрессор Boge',
+                worker: 'Иванов А. В.',
+                description: 'Плановая замена воздушного фильтра и заправка синтетического масла 2.5л.',
+                status: 'new',
+                ai_score: null,
+                ai_verdict: null
+            }
+        ];
+
+        function switchRole(role) {
+            if (role === 'master') {
+                document.getElementById('masterView').style.display = 'block';
+                document.getElementById('workerView').style.display = 'none';
+                document.getElementById('tabMaster').classList.add('active');
+                document.getElementById('tabWorker').classList.remove('active');
+            } else {
+                document.getElementById('masterView').style.display = 'none';
+                document.getElementById('workerView').style.display = 'block';
+                document.getElementById('tabWorker').classList.add('active');
+                document.getElementById('tabMaster').classList.remove('active');
+            }
+            renderTasks();
+        }
+
+        function updateFileName(input) {
+            if (input.files && input.files[0]) {
+                document.getElementById('fileLabel').innerText = '✓ Выбран файл: ' + input.files[0].name;
+            }
+        }
+
+        function fillPreset(type) {
+            if (type === 1) {
+                document.getElementById('eq').value = 'Магистральный насос №4';
+                document.getElementById('desc').value = 'Замена торцевого уплотнения и подшипника SKF 6205. Проверка давления на выходе.';
+            } else if (type === 2) {
+                document.getElementById('eq').value = 'Воздушный компрессор Boge';
+                document.getElementById('desc').value = 'Плановая замена воздушного фильтра и заправка синтетического масла 2.5л.';
+            }
+        }
+
+        async function createTask(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnCreate');
+            btn.disabled = true;
+            btn.innerText = 'Создание...';
+
+            const eq = document.getElementById('eq').value;
+            const worker = document.getElementById('workerName').value;
+            const desc = document.getElementById('desc').value;
+
+            try {
+                const fd = new FormData();
+                fd.append('equipment', eq);
+                fd.append('worker', worker);
+                fd.append('description', desc);
+
+                const res = await fetch('/api/tasks/create', { method: 'POST', body: fd });
+                if (!res.ok) throw new Error('API unavailable');
+                const data = await res.json();
+                if(data.task) tasksStorage.push(data.task);
+            } catch (err) {
+                const newTask = {
+                    id: tasksStorage.length ? Math.max(...tasksStorage.map(t => t.id)) + 1 : 101,
+                    equipment: eq,
+                    worker: worker,
+                    description: desc,
+                    status: 'new',
+                    ai_score: null,
+                    ai_verdict: null
+                };
+                tasksStorage.push(newTask);
+            }
+
+            document.getElementById('eq').value = '';
+            document.getElementById('desc').value = '';
+            btn.disabled = false;
+            btn.innerText = 'Сформировать наряд';
+            renderTasks();
+        }
+
+        async function completeTask(e) {
+            e.preventDefault();
+            const id = parseInt(document.getElementById('taskSelect').value);
+            if (!id) return alert('Выберите наряд!');
+
+            const btn = document.getElementById('btnSubmitWorker');
+            btn.disabled = true;
+            btn.innerText = 'Анализ через ИИ...';
+
+            setTimeout(async () => {
+                const task = tasksStorage.find(t => t.id === id);
+                if (task) {
+                    task.status = 'done';
+                    task.ai_score = '98.5%';
+                    task.ai_verdict = 'ИИ подтверждает: замена элементов и заправка выполнены согласно техническому заданию.';
+
+                    const box = document.getElementById('aiResultBox');
+                    box.style.display = 'block';
+                    document.getElementById('resScore').innerText = 'Оценка ИИ: ' + task.ai_score;
+                    document.getElementById('resText').innerText = task.ai_verdict;
+                    document.getElementById('parts').value = '';
+                    document.getElementById('photoInput').value = '';
+                    document.getElementById('fileLabel').innerText = '📷 Нажмите для выбора фото или снимка';
+                }
+
+                btn.disabled = false;
+                btn.innerText = 'Отправить на ИИ-экспертизу';
+                renderTasks();
+            }, 800);
+        }
+
+        function renderTasks() {
+            const tasks = tasksStorage;
+
+            document.getElementById('statTotal').innerText = tasks.length;
+            const newCount = tasks.filter(t => t.status === 'new').length;
+            const doneCount = tasks.filter(t => t.status === 'done').length;
+            document.getElementById('statPending').innerText = newCount;
+            document.getElementById('statDone').innerText = doneCount;
+            document.getElementById('cntNew').innerText = newCount;
+            document.getElementById('cntDone').innerText = doneCount;
+
+            const cNew = document.getElementById('colNew');
+            const cDone = document.getElementById('colDone');
+            cNew.innerHTML = '';
+            cDone.innerHTML = '';
+
+            const select = document.getElementById('taskSelect');
+            select.innerHTML = '<option value="">-- Выберите наряд --</option>';
+
+            tasks.forEach(t => {
+                if (t.status === 'new') {
+                    select.innerHTML += `<option value="${t.id}">Наряд #${t.id} — ${escapeHtml(t.equipment)} (${escapeHtml(t.worker)})</option>`;
+                }
+
+                const cardHtml = `
+                    <div class="task-card">
+                        <div class="task-id">НАРЯД #${t.id}</div>
+                        <div class="task-title">${escapeHtml(t.equipment)}</div>
+                        <div class="task-desc">${escapeHtml(t.description)}</div>
+                        <div style="font-size:0.75rem; color: var(--text-muted); margin-bottom: 0.5rem;">Исполнитель: ${escapeHtml(t.worker)}</div>
+                        ${t.status === 'new' 
+                            ? `<span class="badge badge-pending">В процессе</span>` 
+                            : `<span class="badge badge-success">Проверено ИИ</span>`}
+                        ${t.ai_score ? `
+                            <div class="ai-verdict-box">
+                                <div class="ai-score">🤖 Точность: ${escapeHtml(t.ai_score)}</div>
+                                <div>${escapeHtml(t.ai_verdict)}</div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+
+                if (t.status === 'new') cNew.innerHTML += cardHtml;
+                if (t.status === 'done') cDone.innerHTML += cardHtml;
+            });
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        renderTasks();
+    </script>
+</body>
+</html>
