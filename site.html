@@ -1,629 +1,1110 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>НарядAI — Промышленная система контроля</title>
-    <style>
-        /* Тема 1: Midnight Slate (По умолчанию - глубокий тёмно-синий) */
-        :root[data-theme="midnight"] {
-            --bg-color: #0b0f19;
-            --card-bg: #151c2c;
-            --card-border: #232d42;
-            --accent-color: #4f46e5;
-            --accent-hover: #4338ca;
-            --text-main: #f1f5f9;
-            --text-muted: #8e9aaf;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --input-bg: #0b0f19;
-            --kanban-bg: rgba(11, 15, 25, 0.5);
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NaryadAI — Промышленная система безопасности (EHS + CMMS)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    .theme-midnight { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --accent: #3b82f6; --border: #334155; }
+    .theme-graphite { --bg: #18181b; --card: #27272a; --text: #f4f4f5; --accent: #a1a1aa; --border: #3f3f46; }
+    .theme-emerald  { --bg: #064e3b; --card: #065f46; --text: #ecfdf5; --accent: #10b981; --border: #059669; }
+    .theme-light    { --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --accent: #2563eb; --border: #e2e8f0; }
 
-        /* Тема 2: Dark Graphite (Строгий премиальный угольно-серый) */
-        :root[data-theme="graphite"] {
-            --bg-color: #121214;
-            --card-bg: #1c1c1f;
-            --card-border: #2d2d32;
-            --accent-color: #2563eb;
-            --accent-hover: #1d4ed8;
-            --text-main: #f4f4f5;
-            --text-muted: #a1a1aa;
-            --success: #22c55e;
-            --warning: #eab308;
-            --danger: #f43f5e;
-            --input-bg: #121214;
-            --kanban-bg: #161618;
-        }
+    body { background-color: var(--bg); color: var(--text); transition: all 0.3s ease; font-family: system-ui, -apple-system, sans-serif; }
+    .card { background-color: var(--card); border-color: var(--border); }
+    
+    .bbox { position: absolute; border: 2px solid; font-size: 10px; font-weight: bold; padding: 2px 4px; border-radius: 4px; pointer-events: none; }
+    .bbox-helmet { border-color: #10b981; background: rgba(16, 185, 129, 0.2); color: #10b981; }
+    .bbox-vest { border-color: #3b82f6; background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+    .bbox-glove { border-color: #f59e0b; background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
 
-        /* Тема 3: Enterprise Light (Светлая корпоративная тема) */
-        :root[data-theme="light"] {
-            --bg-color: #f8fafc;
-            --card-bg: #ffffff;
-            --card-border: #e2e8f0;
-            --accent-color: #0284c7;
-            --accent-hover: #0369a1;
-            --text-main: #0f172a;
-            --text-muted: #64748b;
-            --success: #059669;
-            --warning: #d97706;
-            --danger: #dc2626;
-            --input-bg: #f1f5f9;
-            --kanban-bg: #f1f5f9;
-        }
+    .map-pin { transition: transform 0.2s ease; }
+    .map-pin:hover { transform: translate(-50%, -50%) scale(1.5); z-index: 10; }
+    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+    .pin-pulse { animation: pulse 2s infinite; }
 
-        /* Тема 4: Emerald Executive (Премиальная тёмно-изумрудная) */
-        :root[data-theme="emerald"] {
-            --bg-color: #061712;
-            --card-bg: #0d261e;
-            --card-border: #183e32;
-            --accent-color: #10b981;
-            --accent-hover: #059669;
-            --text-main: #ecfdf5;
-            --text-muted: #6ee7b7;
-            --success: #34d399;
-            --warning: #fbbf24;
-            --danger: #f87171;
-            --input-bg: #061712;
-            --kanban-bg: rgba(6, 23, 18, 0.6);
-        }
+    .custom-scroll::-webkit-scrollbar { width: 4px; height: 4px; }
+    .custom-scroll::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.1); border-radius: 4px; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
+    .custom-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.4); }
 
-        * { 
-            box-sizing: border-box; 
-            margin: 0; 
-            padding: 0; 
-            font-family: 'Inter', system-ui, -apple-system, sans-serif; 
-        }
-
-        body { 
-            background-color: var(--bg-color); 
-            color: var(--text-main); 
-            min-height: 100vh; 
-            padding: 1.5rem; 
-            transition: background-color 0.25s, color 0.25s;
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            padding: 1rem 1.5rem;
-            border-radius: 12px;
-            margin-bottom: 1.5rem;
-            gap: 1rem;
-            flex-wrap: wrap;
-            transition: background 0.25s, border-color 0.25s;
-        }
-
-        .logo-group { display: flex; align-items: center; gap: 0.75rem; }
-        .logo-badge { background: var(--accent-color); color: white; padding: 4px 8px; border-radius: 6px; font-weight: 700; font-size: 0.8rem; }
-        .logo-text { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; }
-
-        .controls-group {
-            display: flex;
-            gap: 0.75rem;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .theme-select {
-            background: var(--input-bg);
-            border: 1px solid var(--card-border);
-            color: var(--text-main);
-            padding: 6px 12px;
-            border-radius: 8px;
-            font-size: 0.85rem;
-            outline: none;
-            cursor: pointer;
-            font-weight: 500;
-        }
-
-        .role-switch { 
-            background: var(--input-bg); 
-            padding: 4px; 
-            border-radius: 8px; 
-            border: 1px solid var(--card-border); 
-            display: flex; 
-            gap: 4px; 
-        } 
-        
-        .role-btn { 
-            background: transparent; 
-            border: none; 
-            color: var(--text-muted); 
-            padding: 8px 16px; 
-            border-radius: 6px; 
-            cursor: pointer; 
-            font-weight: 600; 
-            font-size: 0.875rem; 
-            transition: all 0.2s; 
-        } 
-        
-        .role-btn.active { 
-            background: var(--card-bg); 
-            color: var(--text-main); 
-            box-shadow: 0 1px 3px rgba(0,0,0,0.2); 
-        }
-
-        .stats-grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
-            gap: 1rem; 
-            margin-bottom: 1.5rem; 
-        }
-
-        .stat-card { 
-            background: var(--card-bg); 
-            border: 1px solid var(--card-border); 
-            border-radius: 10px; 
-            padding: 1rem; 
-            transition: background 0.25s, border-color 0.25s;
-        }
-
-        .stat-label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.25rem; }
-        .stat-value { font-size: 1.5rem; font-weight: 700; color: var(--text-main); }
-
-        .main-grid { 
-            display: grid; 
-            grid-template-columns: 340px 1fr; 
-            gap: 1.5rem; 
-            align-items: start;
-        }
-
-        @media (max-width: 960px) { 
-            .main-grid { grid-template-columns: 1fr; } 
-        }
-
-        .panel { 
-            background: var(--card-bg); 
-            border: 1px solid var(--card-border); 
-            border-radius: 12px; 
-            padding: 1.25rem; 
-            overflow: hidden; 
-            transition: background 0.25s, border-color 0.25s;
-        }
-
-        .panel-title { 
-            font-size: 1rem; 
-            font-weight: 600; 
-            margin-bottom: 1rem; 
-            display: flex; 
-            align-items: center; 
-            justify-content: space-between; 
-        }
-
-        .form-group { margin-bottom: 1rem; width: 100%; }
-        .form-group label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.4rem; font-weight: 500; }
-        
-        .form-control { 
-            width: 100%; 
-            max-width: 100%;
-            box-sizing: border-box; 
-            padding: 0.65rem 0.85rem; 
-            background: var(--input-bg); 
-            border: 1px solid var(--card-border); 
-            border-radius: 8px; 
-            color: var(--text-main); 
-            font-size: 0.9rem; 
-            outline: none; 
-            transition: border-color 0.2s, background 0.25s;
-        }
-
-        .form-control:focus { border-color: var(--accent-color); }
-
-        textarea.form-control { 
-            resize: vertical; 
-            min-height: 90px; 
-            max-width: 100%;
-            line-height: 1.4;
-        }
-
-        .btn-primary { 
-            width: 100%; 
-            background: var(--accent-color); 
-            color: white; 
-            border: none; 
-            padding: 0.75rem; 
-            border-radius: 8px; 
-            font-weight: 600; 
-            font-size: 0.9rem; 
-            cursor: pointer; 
-            transition: background 0.2s; 
-        }
-
-        .btn-primary:hover { background: var(--accent-hover); }
-
-        .presets { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
-        .preset-btn { 
-            background: var(--input-bg); 
-            border: 1px solid var(--card-border); 
-            color: var(--text-muted); 
-            padding: 4px 8px; 
-            border-radius: 6px; 
-            font-size: 0.75rem; 
-            cursor: pointer; 
-            transition: all 0.2s;
-        }
-        .preset-btn:hover { border-color: var(--accent-color); color: var(--text-main); }
-
-        .kanban { 
-            display: grid; 
-            grid-template-columns: 1fr 1fr; 
-            gap: 1rem; 
-        }
-
-        @media (max-width: 650px) {
-            .kanban { grid-template-columns: 1fr; }
-        }
-
-        .kanban-col { 
-            background: var(--kanban-bg); 
-            border: 1px solid var(--card-border); 
-            border-radius: 10px; 
-            padding: 1rem; 
-            min-height: 400px; 
-            transition: background 0.25s, border-color 0.25s;
-        }
-
-        .col-header { 
-            font-size: 0.85rem; 
-            font-weight: 600; 
-            color: var(--text-muted); 
-            margin-bottom: 1rem; 
-            text-transform: uppercase; 
-            letter-spacing: 0.05em; 
-            display: flex; 
-            justify-content: space-between; 
-        }
-
-        .task-card { 
-            background: var(--card-bg); 
-            border: 1px solid var(--card-border); 
-            border-radius: 8px; 
-            padding: 1rem; 
-            margin-bottom: 0.75rem; 
-            transition: transform 0.15s, border-color 0.15s; 
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-        }
-
-        .task-card:hover { border-color: var(--accent-color); transform: translateY(-2px); }
-        .task-id { font-size: 0.75rem; font-weight: 700; color: var(--accent-color); margin-bottom: 0.25rem; }
-        .task-title { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.4rem; word-break: break-word; }
-        .task-desc { font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 0.75rem; word-break: break-word; }
-
-        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
-        .badge-pending { background: rgba(245, 158, 11, 0.15); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.3); }
-        .badge-success { background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); }
-
-        .ai-verdict-box { 
-            margin-top: 0.75rem; 
-            padding: 0.65rem; 
-            background: rgba(16, 185, 129, 0.08); 
-            border-left: 3px solid var(--success); 
-            border-radius: 4px; 
-            font-size: 0.8rem; 
-        }
-        
-        .ai-score { font-weight: 700; color: var(--success); margin-bottom: 0.2rem; }
-
-        .worker-container { max-width: 520px; margin: 0 auto; }
-        .file-upload { 
-            border: 2px dashed var(--card-border); 
-            border-radius: 8px; 
-            padding: 1.25rem; 
-            text-align: center; 
-            cursor: pointer; 
-            background: var(--input-bg); 
-            margin-bottom: 1rem; 
-            transition: border-color 0.2s, background 0.25s;
-        }
-        .file-upload:hover { border-color: var(--accent-color); }
-    </style>
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { 
+      -webkit-appearance: none; 
+      margin: 0; 
+    }
+    input[type=number] { -moz-appearance: textfield; }
+  </style>
 </head>
-<body data-theme="midnight">
+<body class="theme-midnight min-h-screen antialiased">
 
-    <div class="header">
-        <div class="logo-group">
-            <span class="logo-badge">ИИ</span>
-            <span class="logo-text">НарядAI Control</span>
+  <!-- ШАПКА -->
+  <header class="card border-b p-4 sticky top-0 z-50 flex justify-between items-center shadow-lg">
+    <div class="flex items-center gap-3">
+      <span class="text-3xl">🛡</span>
+      <div>
+        <h1 class="text-xl font-bold tracking-wide">Naryad<span class="text-blue-500">AI</span></h1>
+        <p class="text-xs text-gray-400">Интеллектуальный контроль ТБ</p>
+      </div>
+    </div>
+    
+    <div class="flex items-center gap-3">
+      <select id="roleSelect" onchange="switchRole(this.value)" class="bg-gray-800 text-sm border border-gray-700 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500 focus:outline-none text-white">
+        <option value="master">👨‍💼 Мастер (Выдача и контроль)</option>
+        <option value="worker">👷 Рабочий (Исполнение и фото)</option>
+      </select>
+
+      <select onchange="changeTheme(this.value)" class="bg-gray-800 text-sm border border-gray-700 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500 focus:outline-none text-white">
+        <option value="theme-midnight">🌙 Midnight</option>
+        <option value="theme-graphite">⬛ Graphite</option>
+        <option value="theme-emerald">🌲 Emerald</option>
+        <option value="theme-light">☀️️ Light</option>
+      </select>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto p-6 space-y-8">
+
+    <!-- ПАНЕЛЬ МАСТЕРА -->
+    <section id="masterView" class="space-y-6">
+      <div class="flex justify-between items-center gap-4 bg-gray-800/50 p-4 rounded-xl border border-gray-700">
+        <div>
+          <h2 class="text-2xl font-bold">Управление нарядами-допусками</h2>
+          <p class="text-sm text-gray-400">Создание, карта рисков и Kanban-доска</p>
         </div>
+        <button onclick="openWizard()" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-5 py-2.5 rounded-lg transition flex items-center gap-2 shadow-md shrink-0">
+          <span>➕</span> Выдать новый наряд
+        </button>
+      </div>
 
-        <div class="controls-group">
-            <!-- Селектор визуальных тем -->
-            <select class="theme-select" onchange="changeTheme(this.value)">
-                <option value="midnight">🌙 Midnight Slate (Тёмно-синий)</option>
-                <option value="graphite">🖤 Dark Graphite (Строгий серый)</option>
-                <option value="emerald">🌲 Emerald Exec (Изумрудный)</option>
-                <option value="light">☀️️ Enterprise (Светлый)</option>
+      <!-- КАРТА ОБЪЕКТА -->
+      <div class="card p-5 rounded-xl border space-y-4 shadow-xl">
+        <div class="flex justify-between items-center">
+          <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider">Локация активных работ (Карта рисков)</h3>
+          <div class="flex gap-3 text-xs">
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-red-500 pin-pulse"></span> Высокий риск</span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span> Средний риск</span>
+          </div>
+        </div>
+        <div class="relative w-full h-60 bg-gray-900 rounded-lg border border-gray-800 overflow-hidden flex items-center justify-center" id="factoryMap">
+          <div class="absolute inset-0 opacity-15 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:20px_20px]"></div>
+          <p class="text-xs text-gray-600 z-0">Схема Цеха №1 (Секции А, Б, В)</p>
+        </div>
+      </div>
+
+      <!-- НОВОЕ: БАННЕР ОТЧЁТОВ НА ПРОВЕРКЕ -->
+      <div id="reviewBanner" class="hidden flex items-center justify-between gap-4 p-4 rounded-xl border border-purple-500/50 bg-purple-500/10 shadow-lg"></div>
+
+      <!-- KANBAN-ДОСКА -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4" id="kanbanBoard"></div>
+    </section>
+
+    <!-- КАБИНЕТ РАБОЧЕГО -->
+    <section id="workerView" class="hidden space-y-6">
+      <div class="bg-gray-800/50 p-4 rounded-xl border border-gray-700">
+        <h2 class="text-2xl font-bold">Мобильный кабинет исполнителя</h2>
+        <p class="text-sm text-gray-400">Ваши текущие задачи и загрузка фотоотчетов</p>
+      </div>
+      <div id="workerTaskList" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+    </section>
+
+  </main>
+
+  <!-- МОДАЛЬНОЕ ОКНО: WIZARD -->
+  <div id="wizardModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto transition-opacity duration-300">
+    <div class="card max-w-xl w-full rounded-2xl border border-gray-700 shadow-2xl overflow-visible my-auto transform transition-transform duration-300 scale-95" id="wizardContent">
+      
+      <div class="p-5 border-b border-gray-700 flex justify-between items-center bg-gray-800/50 rounded-t-2xl">
+        <div>
+          <h3 class="text-lg font-bold">Выдача наряда-допуска</h3>
+          <p class="text-xs text-gray-400" id="wizardStepTitle">Шаг 1: Локация и оборудование</p>
+        </div>
+        <button onclick="closeWizard()" class="text-gray-400 hover:text-white p-1 rounded-full hover:bg-gray-700 transition">✕</button>
+      </div>
+
+      <form id="wizardForm" onsubmit="event.preventDefault();" class="p-6 space-y-5">
+        
+        <div id="step1" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-1.5">Оборудование (Иерархия)</label>
+            <select id="wizEquipment" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none text-white">
+              <option value="Цех №1 ➔ Компрессор Boge (Инв. #402)">Цех №1 ➔ Компрессор Boge (Инв. #402)</option>
+              <option value="Цех №1 ➔ Электрощитовая 380V (Панель А)">Цех №1 ➔ Электрощитовая 380V (Панель А)</option>
+              <option value="Участок ТО ➔ Токарный станок 1К62">Участок ТО ➔ Токарный станок 1К62</option>
+              <option value="Склад ТМЦ ➔ Стеллаж высотный (Зона Б)">Склад ТМЦ ➔ Стеллаж высотный (Зона Б)</option>
             </select>
-
-            <div class="role-switch">
-                <button class="role-btn active" id="tabMaster" onclick="switchRole('master')">👨‍💼 Мастер (ПК)</button>
-                <button class="role-btn" id="tabWorker" onclick="switchRole('worker')">👷‍♂️ Рабочий (Мобильный)</button>
-            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-1.5">Вид работ и категория риска</label>
+            <select id="wizCategory" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none text-white">
+              <option value="fire" data-risk="high">🔥 Огневые работы (Высокий риск)</option>
+              <option value="height" data-risk="high">🧗 Работа на высоте (Высокий риск)</option>
+              <option value="electric" data-risk="medium">⚡ Электромонтаж (Средний риск)</option>
+              <option value="repair" data-risk="low">🛠 Ремонтные работы (Низкий риск)</option>
+            </select>
+          </div>
         </div>
+
+        <div id="step2" class="hidden space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-1.5">Ответственный исполнитель (Бригадир)</label>
+            <input type="text" id="wizWorker" value="Иванов Алексей Викторович" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none text-white">
+          </div>
+          
+          <div class="relative space-y-2">
+            <div class="flex justify-between items-center">
+              <label class="block text-sm font-medium text-gray-300">Срок выполнения (Дедлайн)</label>
+              <span class="text-[11px] text-blue-400">Кликните по ячейкам для выбора</span>
+            </div>
+            
+            <div class="flex items-center gap-2 bg-gray-800 border border-gray-700 rounded-xl p-2 focus-within:border-blue-500 transition-colors">
+              <div onclick="openPickerWithTab('date')" class="flex-1 flex items-center justify-center gap-2 bg-gray-900 border border-gray-700 hover:border-blue-500/50 rounded-lg px-3 py-2 cursor-pointer transition">
+                <span class="text-xs">📅</span>
+                <span id="dateSegmentDisplay" class="font-mono text-sm font-bold text-blue-400">06.10.2026</span>
+              </div>
+
+              <span class="text-gray-500 font-bold">|</span>
+
+              <div class="flex items-center bg-gray-900 border border-gray-700 hover:border-blue-500/50 rounded-lg px-3 py-1.5 transition">
+                <span class="text-[10px] text-gray-400 mr-1.5 font-bold uppercase">Ч:</span>
+                <input type="number" id="cellHours" min="0" max="23" oninput="handleCellInput()" onblur="formatCellsOnBlur()" onclick="openPickerWithTab('time')" class="w-8 bg-transparent text-center font-mono text-sm font-bold text-blue-400 focus:outline-none" value="18">
+              </div>
+
+              <span class="text-gray-500 font-bold">:</span>
+
+              <div class="flex items-center bg-gray-900 border border-gray-700 hover:border-blue-500/50 rounded-lg px-3 py-1.5 transition">
+                <span class="text-[10px] text-gray-400 mr-1.5 font-bold uppercase">М:</span>
+                <input type="number" id="cellMins" min="0" max="59" oninput="handleCellInput()" onblur="formatCellsOnBlur()" onclick="openPickerWithTab('time')" class="w-8 bg-transparent text-center font-mono text-sm font-bold text-blue-400 focus:outline-none" value="00">
+              </div>
+            </div>
+            
+            <input type="hidden" id="wizDeadline">
+
+            <div class="flex gap-2 text-xs">
+              <button type="button" onclick="addHours(1)" class="flex-1 py-1.5 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-700 transition">+1 час</button>
+              <button type="button" onclick="addHours(4)" class="flex-1 py-1.5 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-700 transition">+4 часа</button>
+              <button type="button" onclick="setShiftEnd()" class="flex-1 py-1.5 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-700 transition">Конец смены</button>
+            </div>
+
+            <div id="pickerDropdown" class="hidden absolute left-0 top-full mt-2 z-50 bg-gray-900 border border-gray-700 rounded-xl p-4 shadow-2xl w-full max-w-sm space-y-3 text-white">
+              <div class="flex bg-gray-800 p-1 rounded-lg text-xs font-medium border border-gray-700">
+                <button type="button" id="tabDateBtn" onclick="switchTab('date')" class="flex-1 py-1.5 rounded-md bg-blue-600 text-white transition">📅 Дата</button>
+                <button type="button" id="tabTimeBtn" onclick="switchTab('time')" class="flex-1 py-1.5 rounded-md text-gray-400 hover:text-white transition">⏰ Время (<span id="selectedTimeTab">18:00</span>)</button>
+              </div>
+
+              <div id="dateTabContent" class="space-y-2">
+                <div class="flex justify-between items-center text-xs font-bold px-1">
+                  <button type="button" onclick="changeMonth(-1)" class="p-1 hover:bg-gray-800 rounded transition">◄</button>
+                  <span id="calMonthTitle">Октябрь 2026</span>
+                  <button type="button" onclick="changeMonth(1)" class="p-1 hover:bg-gray-800 rounded transition">►</button>
+                </div>
+                <div class="grid grid-cols-7 text-center text-[10px] text-gray-500 font-semibold">
+                  <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
+                </div>
+                <div id="daysGrid" class="grid grid-cols-7 text-center text-xs gap-1"></div>
+              </div>
+
+              <div id="timeTabContent" class="hidden space-y-3">
+                <div>
+                  <span class="block text-[10px] text-gray-400 mb-1">Выберите час:</span>
+                  <div id="hoursGrid" class="grid grid-cols-6 gap-1 text-xs"></div>
+                </div>
+                <div>
+                  <span class="block text-[10px] text-gray-400 mb-1">Минуты:</span>
+                  <div id="minsGrid" class="grid grid-cols-4 gap-1 text-xs"></div>
+                </div>
+              </div>
+
+              <button type="button" onclick="togglePicker()" class="w-full py-2 bg-blue-600 hover:bg-blue-500 text-xs font-bold rounded-lg transition mt-2">Принять</button>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-1.5">Краткое описание задачи</label>
+            <textarea id="wizDesc" rows="2" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none text-white" placeholder="Например: Замена масляного фильтра..."></textarea>
+          </div>
+        </div>
+
+        <!-- ШАГ 3 -->
+        <div id="step3" class="hidden space-y-4">
+          <div class="p-4 bg-yellow-950 border border-yellow-700 rounded-lg text-sm text-yellow-200 flex gap-3">
+            <span class="text-xl">⚠️</span>
+            <div>
+              <strong>Lessons Learned (База знаний):</strong>
+              <p class="text-xs text-yellow-300/90">На данном оборудовании при выполнении работ ранее фиксировались проливы жидкостей. Подготовить сорбент.</p>
+            </div>
+          </div>
+          <div class="space-y-3 bg-gray-800 p-4 rounded-lg border border-gray-700">
+            <p class="text-sm font-semibold text-gray-200">Электронный чек-лист инструктажа:</p>
+            <label class="flex items-center gap-3 text-sm text-gray-300 cursor-pointer hover:text-white transition">
+              <input type="checkbox" class="wiz-check w-4 h-4 rounded bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500 cursor-pointer" onchange="validateStep3()"> Целевой инструктаж по ТБ проведён
+            </label>
+            <label class="flex items-center gap-3 text-sm text-gray-300 cursor-pointer hover:text-white transition">
+              <input type="checkbox" class="wiz-check w-4 h-4 rounded bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500 cursor-pointer" onchange="validateStep3()"> СИЗ (каска, жилет, перчатки) выданы
+            </label>
+            <label class="flex items-center gap-3 text-sm text-gray-300 cursor-pointer hover:text-white transition">
+              <input type="checkbox" class="wiz-check w-4 h-4 rounded bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500 cursor-pointer" onchange="validateStep3()"> Зона работ ограждена (проверено мастером)
+            </label>
+          </div>
+        </div>
+
+        <div class="flex justify-between pt-5 border-t border-gray-700 mt-6">
+          <button type="button" id="prevBtn" onclick="moveStep(-1)" class="px-5 py-2.5 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm font-semibold hidden transition">Назад</button>
+          <button type="button" id="nextBtn" onclick="moveStep(1)" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm font-semibold ml-auto transition">Далее →</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- НОВОЕ: МОДАЛКА ОТЧЁТА ИИ-ПРОВЕРКИ -->
+  <div id="reportModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4 overflow-y-auto">
+    <div class="card max-w-4xl w-full rounded-2xl border border-gray-700 shadow-2xl my-auto">
+      <div class="p-5 border-b border-gray-700 flex justify-between items-center bg-gray-800/50 rounded-t-2xl">
+        <div>
+          <h3 class="text-lg font-bold">🤖 ИИ-проверка отчёта</h3>
+          <p class="text-xs text-gray-400" id="reportSubtitle"></p>
+        </div>
+        <button onclick="closeReport()" class="text-gray-400 hover:text-white p-1 rounded-full hover:bg-gray-700 transition">✕</button>
+      </div>
+      <div id="reportBody" class="p-6"></div>
+    </div>
+  </div>
+
+  <!-- НОВОЕ: TOAST -->
+  <div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white border border-gray-700 px-4 py-3 rounded-xl shadow-2xl text-sm z-[70]"></div>
+
+  <!-- ШАБЛОН ДЛЯ PDF -->
+  <div id="pdfTemplate" class="hidden p-10 bg-white text-black space-y-8 text-xs shadow-2xl" style="width: 210mm; min-height: 297mm; font-family: 'Courier New', monospace;">
+    <div class="text-center border-b-2 border-black pb-5">
+      <h1 class="text-2xl font-bold uppercase tracking-widest">Наряд-Допуск №<span id="pdfId"></span></h1>
+      <p class="text-sm mt-1">на выполнение работ повышенной опасности</p>
+      <p class="text-[10px] mt-4 text-left">Выдан: <span id="pdfDate"></span></p>
     </div>
 
-    <!-- РЕЖИМ МАСТЕРА -->
-    <div id="masterView">
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-label">Всего нарядов</div>
-                <div class="stat-value" id="statTotal">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">В процессе</div>
-                <div class="stat-value" id="statPending" style="color: var(--warning);">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Проверено ИИ</div>
-                <div class="stat-value" id="statDone" style="color: var(--success);">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Точность ИИ-контроля</div>
-                <div class="stat-value">99.2%</div>
-            </div>
-        </div>
-
-        <div class="main-grid">
-            <div class="panel">
-                <div class="panel-title">Выдать новый наряд</div>
-                
-                <div class="presets">
-                    <button type="button" class="preset-btn" onclick="fillPreset(1)">Замена насоса</button>
-                    <button type="button" class="preset-btn" onclick="fillPreset(2)">ТО компрессора</button>
-                </div>
-
-                <form onsubmit="createTask(event)">
-                    <div class="form-group">
-                        <label for="eq">Оборудование / Узел</label>
-                        <input type="text" id="eq" class="form-control" placeholder="Например: Компрессор №3" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="workerName">Назначенный рабочий</label>
-                        <input type="text" id="workerName" class="form-control" placeholder="ФИО сотрудника" value="Иванов А. В." required>
-                    </div>
-                    <div class="form-group">
-                        <label for="desc">Техническое задание</label>
-                        <textarea id="desc" class="form-control" rows="4" placeholder="Укажите перечень работ..." required></textarea>
-                    </div>
-                    <button type="submit" class="btn-primary" id="btnCreate">Сформировать наряд</button>
-                </form>
-            </div>
-
-            <div class="panel">
-                <div class="panel-title">Канбан-доска работ</div>
-                <div class="kanban">
-                    <div class="kanban-col">
-                        <div class="col-header">
-                            <span>В работе</span>
-                            <span id="cntNew">0</span>
-                        </div>
-                        <div id="colNew"></div>
-                    </div>
-                    <div class="kanban-col">
-                        <div class="col-header">
-                            <span>Выполнено и проверено</span>
-                            <span id="cntDone">0</span>
-                        </div>
-                        <div id="colDone"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div class="grid grid-cols-1 gap-5 border border-black p-4">
+      <p><strong>1. Организация:</strong> ООО "Прогресс Пром Сервис"</p>
+      <p><strong>2. Место работы (Оборудование):</strong> <span id="pdfEq"></span></p>
+      <p><strong>3. Исполнитель (Бригадир):</strong> <span id="pdfWorker"></span></p>
+      <p><strong>4. Описание работ:</strong> <span id="pdfDesc"></span></p>
+      <p><strong>5. Категория риска:</strong> <span id="pdfRisk" class="font-bold uppercase"></span></p>
+      <p><strong>6. Плановое время завершения (Дедлайн):</strong> <span id="pdfDeadline"></span></p>
     </div>
 
-    <!-- РЕЖИМ РАБОЧЕГО -->
-    <div id="workerView" class="worker-container" style="display: none;">
-        <div class="panel">
-            <div class="panel-title">Отчёт о выполнении наряда</div>
-            <form onsubmit="completeTask(event)">
-                <div class="form-group">
-                    <label for="taskSelect">Выберите текущий наряд</label>
-                    <select id="taskSelect" class="form-control" required>
-                        <option value="">Выберите наряд...</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="parts">Списанные материалы и запчасти</label>
-                    <input type="text" id="parts" class="form-control" placeholder="Например: Фильтр воздушный 102-А, масло 2.5л" required>
-                </div>
-
-                <div class="form-group">
-                    <label>Фотофиксация выполненных работ</label>
-                    <div class="file-upload" onclick="document.getElementById('photoInput').click()">
-                        <span id="fileLabel" style="font-size: 0.85rem; color: var(--text-muted);">📷 Нажмите для выбора фото или снимка</span>
-                        <input type="file" id="photoInput" style="display:none;" accept="image/*" onchange="updateFileName(this)">
-                    </div>
-                </div>
-
-                <button type="submit" class="btn-primary" id="btnSubmitWorker" style="background: var(--success);">Отправить на ИИ-экспертизу</button>
-            </form>
-
-            <div id="aiResultBox" style="display: none; margin-top: 1.25rem;" class="ai-verdict-box">
-                <div class="ai-score" id="resScore"></div>
-                <div id="resText" style="color: var(--text-main);"></div>
-            </div>
+    <div class="border border-black p-4 space-y-3">
+      <p class="font-bold border-b border-black pb-2">7. Результат интеллектуальной ИИ-проверки (viAct Safety Score):</p>
+      <div class="flex gap-10 items-center">
+        <div class="text-4xl font-black border-4 border-black p-3 rounded-xl"><span id="pdfScore"></span>%</div>
+        <div class="space-y-1">
+          <p>Статус: <span id="pdfVerdict" class="font-bold"></span></p>
+          <p id="pdfAiNote" class="text-[10px] text-gray-700"></p>
         </div>
+      </div>
     </div>
 
-    <script>
-        function changeTheme(themeName) {
-            document.documentElement.setAttribute('data-theme', themeName);
+    <div class="pt-16 grid grid-cols-2 gap-10">
+      <div class="border-t border-black pt-2">Выдал (Мастер): ____________ / Петров С.М.</div>
+      <div class="border-t border-black pt-2">Принял (Исполнитель): ____________ / <span id="pdfSignWorker"></span></div>
+    </div>
+    
+    <div class="text-center text-[9px] pt-10 text-gray-500">Сгенерировано системой NaryadAI. Электронная подпись валидна.</div>
+  </div>
+
+  <script>
+    let tasksStorage = [
+      {
+        id: 101,
+        equipment: 'Цех №1 ➔ Компрессор Boge',
+        worker: 'Иванов А. В.',
+        desc: 'Плановая замена масляного фильтра',
+        category: 'fire', risk: 'high',
+        status: 'in_progress',
+        deadline: new Date(Date.now() + 2.5 * 3600 * 1000).toISOString(),
+        x: 30, y: 45,
+        photo: null, aiScore: null, aiBoxes: []
+      },
+      {
+        id: 102,
+        equipment: 'Участок ТО ➔ Токарный станок 1К62',
+        worker: 'Петров С.М.',
+        desc: 'Проверка соосности валов',
+        category: 'repair', risk: 'low',
+        status: 'new',
+        deadline: new Date(Date.now() + 5 * 3600 * 1000).toISOString(),
+        x: 65, y: 25,
+        photo: null, aiScore: null, aiBoxes: []
+      }
+    ];
+
+    let currentWizardStep = 1;
+    let currentRole = 'master';
+
+    let currentDate = new Date();
+    currentDate.setHours(currentDate.getHours() + 4);
+    const monthNames = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+
+    function updateDateInput() {
+      const d = String(currentDate.getDate()).padStart(2, '0');
+      const m = String(currentDate.getMonth() + 1).padStart(2, '0');
+      const y = currentDate.getFullYear();
+      const hh = String(currentDate.getHours()).padStart(2, '0');
+      const mm = String(currentDate.getMinutes()).padStart(2, '0');
+      
+      document.getElementById('dateSegmentDisplay').innerText = `${d}.${m}.${y}`;
+      document.getElementById('cellHours').value = hh;
+      document.getElementById('cellMins').value = mm;
+      document.getElementById('selectedTimeTab').innerText = `${hh}:${mm}`;
+      document.getElementById('wizDeadline').value = currentDate.toISOString();
+    }
+
+    function handleCellInput() {
+      let h = parseInt(document.getElementById('cellHours').value) || 0;
+      let m = parseInt(document.getElementById('cellMins').value) || 0;
+
+      if (h > 23) h = 23;
+      if (h < 0) h = 0;
+      if (m > 59) m = 59;
+      if (m < 0) m = 0;
+
+      currentDate.setHours(h);
+      currentDate.setMinutes(m);
+
+      document.getElementById('selectedTimeTab').innerText = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      document.getElementById('wizDeadline').value = currentDate.toISOString();
+    }
+
+    function formatCellsOnBlur() {
+      let h = parseInt(document.getElementById('cellHours').value) || 0;
+      let m = parseInt(document.getElementById('cellMins').value) || 0;
+      document.getElementById('cellHours').value = String(h).padStart(2, '0');
+      document.getElementById('cellMins').value = String(m).padStart(2, '0');
+    }
+
+    function openPickerWithTab(tab) {
+      document.getElementById('pickerDropdown').classList.remove('hidden');
+      switchTab(tab);
+      renderCalendar();
+      renderTime();
+    }
+
+    function togglePicker() {
+      document.getElementById('pickerDropdown').classList.toggle('hidden');
+      renderCalendar();
+      renderTime();
+    }
+
+    function switchTab(tab) {
+      if (tab === 'date') {
+        document.getElementById('dateTabContent').classList.remove('hidden');
+        document.getElementById('timeTabContent').classList.add('hidden');
+        document.getElementById('tabDateBtn').className = 'flex-1 py-1.5 rounded-md bg-blue-600 text-white transition';
+        document.getElementById('tabTimeBtn').className = 'flex-1 py-1.5 rounded-md text-gray-400 hover:text-white transition';
+      } else {
+        document.getElementById('dateTabContent').classList.add('hidden');
+        document.getElementById('timeTabContent').classList.remove('hidden');
+        document.getElementById('tabTimeBtn').className = 'flex-1 py-1.5 rounded-md bg-blue-600 text-white transition';
+        document.getElementById('tabDateBtn').className = 'flex-1 py-1.5 rounded-md text-gray-400 hover:text-white transition';
+      }
+    }
+
+    function renderCalendar() {
+      const grid = document.getElementById('daysGrid');
+      grid.innerHTML = '';
+      
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+      document.getElementById('calMonthTitle').innerText = `${monthNames[month]} ${year}`;
+
+      const firstDay = new Date(year, month, 1).getDay();
+      let startingDay = firstDay === 0 ? 6 : firstDay - 1;
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      for (let i = 0; i < startingDay; i++) {
+        grid.innerHTML += `<div></div>`;
+      }
+
+      for (let i = 1; i <= daysInMonth; i++) {
+        const isSelected = i === currentDate.getDate();
+        const activeClass = isSelected ? 'bg-blue-600 font-bold text-white' : 'hover:bg-gray-800 text-gray-300';
+        grid.innerHTML += `<button type="button" onclick="selectDay(${i})" class="py-1.5 rounded-md transition ${activeClass}">${i}</button>`;
+      }
+    }
+
+    function selectDay(day) {
+      currentDate.setDate(day);
+      updateDateInput();
+      renderCalendar();
+      switchTab('time');
+    }
+
+    function changeMonth(delta) {
+      currentDate.setMonth(currentDate.getMonth() + delta);
+      renderCalendar();
+    }
+
+    function renderTime() {
+      const hGrid = document.getElementById('hoursGrid');
+      const mGrid = document.getElementById('minsGrid');
+      hGrid.innerHTML = '';
+      mGrid.innerHTML = '';
+
+      const hours = ['08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '20'];
+      hours.forEach(h => {
+        const isSelected = parseInt(h) === currentDate.getHours();
+        const activeClass = isSelected ? 'bg-blue-600 font-bold text-white' : 'bg-gray-800 hover:bg-gray-700 text-gray-300';
+        hGrid.innerHTML += `<button type="button" onclick="selectHour(${h})" class="py-1 rounded transition ${activeClass}">${h}</button>`;
+      });
+
+      const mins = ['00', '15', '30', '45'];
+      mins.forEach(m => {
+        const isSelected = parseInt(m) === currentDate.getMinutes();
+        const activeClass = isSelected ? 'bg-blue-600 font-bold text-white' : 'bg-gray-800 hover:bg-gray-700 text-gray-300';
+        mGrid.innerHTML += `<button type="button" onclick="selectMin(${m})" class="py-1 rounded transition ${activeClass}">${m}</button>`;
+      });
+    }
+
+    function selectHour(h) {
+      currentDate.setHours(h);
+      updateDateInput();
+      renderTime();
+    }
+
+    function selectMin(m) {
+      currentDate.setMinutes(m);
+      updateDateInput();
+      renderTime();
+    }
+
+    function addHours(h) {
+      currentDate.setHours(currentDate.getHours() + h);
+      updateDateInput();
+    }
+
+    function setShiftEnd() {
+      currentDate.setHours(18, 0);
+      updateDateInput();
+    }
+
+    const kanbanCols = [
+      { id: 'new', title: '📋 Созданы', color: 'border-blue-500' },
+      { id: 'in_progress', title: '🛠️ В работе', color: 'border-yellow-500' },
+      { id: 'review', title: '🤖 ИИ-Проверка', color: 'border-purple-500' },
+      { id: 'done', title: '✅ Завершено', color: 'border-green-500' }
+    ];
+
+    function getTimerData(deadlineStr, isDone) {
+      if (isDone) return { text: 'Завершено в срок', expired: false, isDone: true };
+      
+      const diff = new Date(deadlineStr) - new Date();
+      if (diff <= 0) { return { text: '⚠️ Просрочено!', expired: true, isDone: false }; }      const totalSecs = Math.floor(diff / 1000);
+      const days = Math.floor(totalSecs / 86400);
+      const hours = Math.floor((totalSecs % 86400) / 3600);
+      const mins = Math.floor((totalSecs % 3600) / 60);
+
+      let text = '';
+      if (days >= 365) {
+        const years = (days / 365).toFixed(1);
+        text = `⏳ ${years} г. (${days} дн.)`;
+      } else if (days > 0) {
+        text = `⏳ ${days} дн. ${hours} ч. ${mins} мин.`;
+      } else {
+        const hStr = hours < 10 ? '0' + hours : hours;
+        const mStr = mins < 10 ? '0' + mins : mins;
+        const sStr = Math.floor(totalSecs % 60) < 10 ? '0' + Math.floor(totalSecs % 60) : Math.floor(totalSecs % 60);
+        text = `⏳ ${hStr}:${mStr}:${sStr}`;
+      }
+
+      return { text, expired: false, isDone: false };
+    }
+
+    function renderApp() {
+      renderKanban();
+      renderReviewBanner();
+      renderMapPins();
+      renderWorkerTasks();
+      updateTimersOnly();
+    }
+
+    function takeTaskToWork(taskId) {
+      const task = tasksStorage.find(t => t.id === taskId);
+      if (task && task.status === 'new') {
+        task.status = 'in_progress';
+        renderApp();
+      }
+    }
+
+    function renderKanban() {
+      const board = document.getElementById('kanbanBoard');
+      board.innerHTML = '';
+
+      kanbanCols.forEach(col => {
+        const colTasks = tasksStorage.filter(t => t.status === col.id);
+        
+        const colElem = document.createElement('div');
+        colElem.className = `card p-4 rounded-xl border-t-4 ${col.color} border-x border-b shadow-md flex flex-col h-[550px]`;
+        colElem.innerHTML = `
+          <div class="flex justify-between items-center pb-3 border-b border-gray-700 shrink-0">
+            <h4 class="font-bold text-sm flex items-center gap-2">${col.title}</h4>
+            <span class="text-xs bg-gray-800 px-2.5 py-1 rounded-full font-mono border border-gray-700">${colTasks.length}</span>
+          </div>
+          <div class="space-y-3 pt-3 overflow-y-auto pr-1 flex-1 custom-scroll" id="col-${col.id}"></div>
+        `;
+        
+        const tasksContainer = colElem.querySelector(`#col-${col.id}`);
+
+        colTasks.forEach(t => {
+          const riskColor = t.risk === 'high' ? 'bg-red-500/20 text-red-400' : (t.risk === 'medium' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-green-500/20 text-green-400');
+
+          const card = document.createElement('div');
+          card.className = 'bg-gray-800/80 p-4 rounded-lg border border-gray-700 space-y-3 text-xs shadow hover:border-blue-500 transition-colors cursor-pointer';
+          card.innerHTML = `
+            <div class="flex justify-between items-center gap-2">
+              <span class="font-mono text-blue-400 font-bold">#${t.id}</span>
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${riskColor}">${t.category}</span>
+            </div>
+            <p class="font-semibold text-gray-100 text-sm antialiased">${t.equipment}</p>
+            <p class="text-gray-400 flex items-center gap-1.5">👷 ${t.worker}</p>
+            
+            <div class="flex items-center justify-between px-2.5 py-1.5 rounded border text-[11px] timer-box" data-task-id="${t.id}">
+              <span>Остаток времени:</span>
+              <span class="font-mono font-bold timer-text">...</span>
+            </div>
+
+            ${t.status === 'new' ? `
+              <button onclick="takeTaskToWork(${t.id})" class="w-full mt-2 bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-md text-[11px] font-semibold transition flex items-center justify-center gap-1.5 shadow">
+                ▶ Взять в работу
+              </button>
+            ` : ''}
+
+            ${t.status === 'review' && t.aiState === 'analyzing' ? `
+              <div class="flex items-center gap-2 text-purple-300 pt-2 border-t border-gray-700">
+                <div class="animate-spin w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full"></div>
+                ИИ анализирует фото...
+              </div>
+            ` : ''}
+
+            ${t.status === 'review' && t.aiState === 'ready' ? `
+              <div class="space-y-2 pt-2 border-t border-gray-700">
+                <div class="relative h-24 rounded-md overflow-hidden border border-gray-700 bg-black">
+                  <img src="${t.photo}" class="w-full h-full object-cover opacity-90">
+                  <span class="absolute bottom-1 right-1 bg-black/70 px-1.5 py-0.5 rounded text-[10px] font-bold ${(t.aiChecks || []).some(c => !c.ok) ? 'text-amber-400' : 'text-green-400'}">AI ${t.aiScore}%</span>
+                </div>
+                <p class="text-[11px] ${(t.aiChecks || []).some(c => !c.ok) ? 'text-amber-300' : 'text-green-400'}">${esc(t.aiVerdict)}</p>
+                <button onclick="openReport(${t.id})" class="w-full bg-purple-600 hover:bg-purple-500 text-white py-2 rounded-md text-[11px] font-semibold transition shadow">
+                  📄 Открыть отчёт и принять решение
+                </button>
+              </div>
+            ` : ''}
+
+            ${t.status === 'done' ? `
+              ${t.aiScore ? `
+                <div class="flex items-center justify-between gap-2 pt-2 border-t border-gray-700">
+                  <span class="text-green-400 font-bold">Safety Score: ${t.aiScore}%</span>
+                  <span class="text-green-500 text-lg">✓</span>
+                </div>
+              ` : ''}
+              ${t.photo ? `
+                <button onclick="openReport(${t.id})" class="w-full mt-2 bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/40 text-purple-200 py-2 rounded-md text-[11px] font-semibold transition">
+                  🔍 Отчёт ИИ-проверки
+                </button>
+              ` : ''}
+              <button onclick="exportPDF(${t.id})" class="w-full mt-2 bg-gray-700 hover:bg-gray-600 text-white py-2 rounded-md text-[11px] font-semibold transition flex items-center justify-center gap-1.5">
+                📥 Скачать Наряд (PDF)
+              </button>
+            ` : ''}
+          `;
+          if (t.status === 'review' && t.aiState === 'ready') {
+            card.classList.add('ring-2', 'ring-purple-500');
+            card.onclick = () => openReport(t.id);
+          }
+          tasksContainer.appendChild(card);
+        });
+
+        board.appendChild(colElem);
+      });
+    }
+
+    function renderMapPins() {
+      const map = document.getElementById('factoryMap');
+      map.querySelectorAll('.map-pin').forEach(pin => pin.remove());
+
+      tasksStorage.filter(t => t.status !== 'done').forEach(t => {
+        const pin = document.createElement('div');
+        const riskClass = t.risk === 'high' ? 'bg-red-500 pin-pulse' : 'bg-yellow-500';
+        pin.className = `map-pin absolute w-4 h-4 rounded-full border-2 border-white cursor-pointer transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center shadow-lg ${riskClass}`;
+        pin.style.left = `${t.x}%`;
+        pin.style.top = `${t.y}%`;
+        pin.innerHTML = `<span class="text-white text-[7px] font-bold">${t.id}</span>`;
+        pin.onclick = () => alert(`Наряд #${t.id}\nОборудование: ${t.equipment}\nСтатус: ${t.status}`);
+        map.appendChild(pin);
+      });
+    }
+
+    function renderWorkerTasks() {
+      const list = document.getElementById('workerTaskList');
+      list.innerHTML = '';
+
+      const activeTasks = tasksStorage.filter(t => t.status === 'in_progress' || t.status === 'review' || t.status === 'new');
+      
+      if (activeTasks.length === 0) {
+        list.innerHTML = '<div class="col-span-full text-center py-10 card rounded-xl border border-gray-700 text-gray-500">Нет активных нарядов для исполнения</div>';
+        return;
+      }
+
+      activeTasks.forEach(t => {
+        const card = document.createElement('div');
+        card.className = 'card p-5 rounded-xl border border-gray-700/50 space-y-4 shadow-lg';
+        
+        let aiBlock = '';
+        
+        if (t.status === 'new') {
+          aiBlock = `
+            <div class="pt-2">
+              <button onclick="takeTaskToWork(${t.id})" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-semibold transition flex items-center justify-center gap-2 shadow-lg">
+                🚀 Взять работу в исполнение
+              </button>
+            </div>
+          `;
+        } else if (t.status === 'review') {
+          if (t.aiState === 'analyzing') {
+            aiBlock = `
+              <div class="space-y-3 pt-4 border-t border-gray-700">
+                <h5 class="text-xs font-semibold text-gray-300 uppercase tracking-wider">Фотофиксация и ИИ-анализ СИЗ</h5>
+                <div class="text-center py-8 bg-gray-800 rounded-lg border border-gray-700 space-y-2">
+                  <div class="animate-spin inline-block w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+                  <p class="text-xs text-blue-400 font-medium">ИИ анализирует выбранное фото...</p>
+                </div>
+              </div>
+            `;
+          } else {
+            aiBlock = `
+              <div class="space-y-3 pt-4 border-t border-gray-700">
+                <h5 class="text-xs font-semibold text-gray-300 uppercase tracking-wider">Фотофиксация и ИИ-анализ СИЗ</h5>
+                <div class="relative w-full h-48 rounded-lg overflow-hidden border border-gray-700 shadow-inner bg-black">
+                  <img src="${t.photo}" class="w-full h-full object-cover opacity-80">
+                  ${(t.aiBoxes || []).map(b => `<div class="bbox ${b.class}" style="top:${b.top};left:${b.left};width:${b.w};height:${b.h}">${b.label}</div>`).join('')}
+                  <div class="absolute bottom-2 right-2 bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded">AI: ${t.aiScore}%</div>
+                </div>
+                <div class="p-3 rounded-lg border border-purple-500/40 bg-purple-500/10 text-xs text-purple-200 flex gap-2">
+                  <span>📤</span><span>Отчёт отправлен мастеру. Ожидайте решения: одобрение или переотчёт.</span>
+                </div>
+              </div>
+            `;
+          }
+        } else if (t.photo && t.aiScore) {
+          aiBlock = `
+            <div class="space-y-3 pt-4 border-t border-gray-700">
+              <h5 class="text-xs font-semibold text-gray-300 uppercase tracking-wider">Фотофиксация и ИИ-анализ СИЗ</h5>
+              <div class="relative w-full h-48 rounded-lg overflow-hidden border border-gray-700 shadow-inner bg-black">
+                <img src="${t.photo}" class="w-full h-full object-cover opacity-80">
+                ${(t.aiBoxes || []).map(b => `<div class="bbox ${b.class}" style="top:${b.top};left:${b.left};width:${b.w};height:${b.h}">${b.label}</div>`).join('')}
+                <div class="absolute bottom-2 right-2 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded">Score: ${t.aiScore}%</div>
+              </div>
+            </div>
+          `;
+        } else {
+          aiBlock = `
+            <div class="space-y-3 pt-4 border-t border-gray-700">
+              <h5 class="text-xs font-semibold text-gray-300 uppercase tracking-wider">Фотофиксация и ИИ-анализ СИЗ</h5>
+              ${t.reworkNote ? `
+                <div class="p-3 rounded-lg border border-amber-500/50 bg-amber-500/10 text-xs text-amber-200 flex gap-2">
+                  <span>↩</span><span><b>Мастер вернул отчёт на переотчёт:</b> ${esc(t.reworkNote)}</span>
+                </div>
+              ` : ''}
+              <label class="w-full py-6 border-2 border-dashed border-gray-600 hover:border-blue-500 hover:bg-blue-500/5 rounded-xl text-sm text-gray-400 flex flex-col items-center justify-center gap-2 transition-colors cursor-pointer">
+                <input type="file" accept="image/*" class="hidden" onchange="handleTaskFileSelect(event, ${t.id})">
+                <span class="text-2xl">📸</span>
+                <span class="font-medium">Сделать фотоотчёт (СИЗ + Зона)</span>
+                <span class="text-xs text-gray-500">выберите файл с диска или камеры</span>
+              </label>
+            </div>
+          `;
         }
 
-        let tasksStorage = [
-            {
-                id: 101,
-                equipment: 'Воздушный компрессор Boge',
-                worker: 'Иванов А. В.',
-                description: 'Плановая замена воздушного фильтра и заправка синтетического масла 2.5л.',
-                status: 'new',
-                ai_score: null,
-                ai_verdict: null
-            }
+        const statusBadge = t.status === 'new'
+          ? '<span class="px-3 py-1 rounded-full text-xs font-medium bg-blue-500/10 border border-blue-500/30 text-blue-400">Ожидание</span>'
+          : (t.status === 'review'
+            ? '<span class="px-3 py-1 rounded-full text-xs font-medium bg-purple-500/10 border border-purple-500/30 text-purple-300">На проверке</span>'
+            : '<span class="px-3 py-1 rounded-full text-xs font-medium bg-yellow-500/10 border border-yellow-500/30 text-yellow-400">В работе</span>');
+
+        card.innerHTML = `
+          <div class="flex justify-between items-start gap-3">
+            <div>
+              <span class="font-mono text-xs text-blue-400 font-bold">#${t.id}</span>
+              <h4 class="font-bold text-base text-gray-100">${t.equipment}</h4>
+            </div>
+            ${statusBadge}
+          </div>
+          
+          <div class="flex items-center justify-between px-3 py-2 rounded border text-xs timer-box" data-task-id="${t.id}">
+            <span>Таймер дедлайна:</span>
+            <span class="font-mono font-bold text-sm timer-text">...</span>
+          </div>
+
+          <p class="text-sm text-gray-400 bg-gray-800 p-3 rounded-lg border border-gray-700">${t.desc}</p>
+          
+          ${aiBlock}
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    function updateTimersOnly() {
+      document.querySelectorAll('.timer-box').forEach(box => {
+        const taskId = parseInt(box.getAttribute('data-task-id'));
+        const task = tasksStorage.find(t => t.id === taskId);
+        if (!task) return;
+
+        const timer = getTimerData(task.deadline, task.status === 'done');
+        const textElem = box.querySelector('.timer-text');
+        if (textElem) textElem.innerText = timer.text;
+
+        let timerClass = 'text-blue-400 bg-blue-500/10 border-blue-500/30';
+        if (timer.expired) timerClass = 'text-red-400 bg-red-500/10 border-red-500/30 font-bold animate-pulse';
+        if (timer.isDone) timerClass = 'text-green-400 bg-green-500/10 border-green-500/30';
+
+        box.className = `flex items-center justify-between px-2.5 py-1.5 rounded border text-[11px] timer-box ${timerClass}`;
+      });
+    }
+
+    function handleTaskFileSelect(event, taskId) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const task = tasksStorage.find(t => t.id === taskId);
+      if (!task) return;
+
+      if (task.photo) URL.revokeObjectURL(task.photo);
+      task.photo = URL.createObjectURL(file);
+      task.reworkNote = null;
+      task.status = 'review';
+      task.aiState = 'analyzing';
+      renderApp();
+
+      setTimeout(() => {
+        const glovesOk = Math.random() > 0.25;
+        const conf = () => Math.floor(Math.random() * 8 + 91);
+
+        task.aiChecks = [
+          { name: 'Каска', ok: true, conf: conf() },
+          { name: 'Жилет', ok: true, conf: conf() },
+          { name: 'Перчатки', ok: glovesOk, conf: glovesOk ? conf() : 0 },
+          { name: 'Ограждение зоны', ok: true, conf: conf() }
         ];
+        task.aiScore = glovesOk ? Math.floor(Math.random() * 8 + 92) : Math.floor(Math.random() * 8 + 76);
+        task.aiVerdict = glovesOk
+          ? 'СИЗ обнаружены, зона ограждена. Нарушений не выявлено.'
+          : 'Перчатки не обнаружены в кадре. Рекомендуется переотчёт.';
+        task.aiBoxes = [
+          { label: 'Каска ✓', class: 'bbox-helmet', top: '15%', left: '42%', w: '15%', h: '12%' },
+          { label: 'Жилет ✓', class: 'bbox-vest', top: '30%', left: '38%', w: '25%', h: '35%' }
+        ];
+        if (glovesOk) task.aiBoxes.push({ label: 'Перчатки ✓', class: 'bbox-glove', top: '62%', left: '28%', w: '16%', h: '12%' });
 
-        function switchRole(role) {
-            if (role === 'master') {
-                document.getElementById('masterView').style.display = 'block';
-                document.getElementById('workerView').style.display = 'none';
-                document.getElementById('tabMaster').classList.add('active');
-                document.getElementById('tabWorker').classList.remove('active');
-            } else {
-                document.getElementById('masterView').style.display = 'none';
-                document.getElementById('workerView').style.display = 'block';
-                document.getElementById('tabWorker').classList.add('active');
-                document.getElementById('tabMaster').classList.remove('active');
-            }
-            renderTasks();
-        }
+        task.aiState = 'ready';
+        task.sentAt = new Date().toISOString();
+        renderApp();
+        showToast(`Отчёт по наряду #${task.id} отправлен мастеру на проверку`);
+      }, 2500);
+    }
 
-        function updateFileName(input) {
-            if (input.files && input.files[0]) {
-                document.getElementById('fileLabel').innerText = '✓ Выбран файл: ' + input.files[0].name;
-            }
-        }
+    function openWizard() {
+      currentWizardStep = 1;
+      currentDate = new Date();
+      currentDate.setHours(currentDate.getHours() + 4);
+      
+      document.querySelectorAll('.wiz-check').forEach(cb => cb.checked = false);
 
-        function fillPreset(type) {
-            if (type === 1) {
-                document.getElementById('eq').value = 'Магистральный насос №4';
-                document.getElementById('desc').value = 'Замена торцевого уплотнения и подшипника SKF 6205. Проверка давления на выходе.';
-            } else if (type === 2) {
-                document.getElementById('eq').value = 'Воздушный компрессор Boge';
-                document.getElementById('desc').value = 'Плановая замена воздушного фильтра и заправка синтетического масла 2.5л.';
-            }
-        }
+      updateDateInput();
+      updateWizardUI();
+      
+      document.getElementById('wizardModal').classList.remove('hidden');
+      setTimeout(() => document.getElementById('wizardContent').classList.remove('scale-95'), 10);
+    }
 
-        async function createTask(e) {
-            e.preventDefault();
-            const btn = document.getElementById('btnCreate');
-            btn.disabled = true;
-            btn.innerText = 'Создание...';
+    function closeWizard() {
+      document.getElementById('wizardContent').classList.add('scale-95');
+      setTimeout(() => document.getElementById('wizardModal').classList.add('hidden'), 200);
+    }
 
-            const eq = document.getElementById('eq').value;
-            const worker = document.getElementById('workerName').value;
-            const desc = document.getElementById('desc').value;
+    function moveStep(delta) {
+      if (currentWizardStep === 3 && delta > 0) {
+        createTask();
+        return;
+      }
 
-            try {
-                const fd = new FormData();
-                fd.append('equipment', eq);
-                fd.append('worker', worker);
-                fd.append('description', desc);
+      currentWizardStep += delta;
+      updateWizardUI();
+    }
 
-                const res = await fetch('/api/tasks/create', { method: 'POST', body: fd });
-                if (!res.ok) throw new Error('API unavailable');
-                const data = await res.json();
-                if(data.task) tasksStorage.push(data.task);
-            } catch (err) {
-                const newTask = {
-                    id: tasksStorage.length ? Math.max(...tasksStorage.map(t => t.id)) + 1 : 101,
-                    equipment: eq,
-                    worker: worker,
-                    description: desc,
-                    status: 'new',
-                    ai_score: null,
-                    ai_verdict: null
-                };
-                tasksStorage.push(newTask);
-            }
+    function validateStep3() {
+      if (currentWizardStep !== 3) return;
 
-            document.getElementById('eq').value = '';
-            document.getElementById('desc').value = '';
-            btn.disabled = false;
-            btn.innerText = 'Сформировать наряд';
-            renderTasks();
-        }
+      const checkboxes = document.querySelectorAll('.wiz-check');
+      const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+      const nextBtn = document.getElementById('nextBtn');
 
-        async function completeTask(e) {
-            e.preventDefault();
-            const id = parseInt(document.getElementById('taskSelect').value);
-            if (!id) return alert('Выберите наряд!');
+      if (allChecked) {
+        nextBtn.disabled = false;
+        nextBtn.className = 'px-5 py-2.5 bg-green-600 hover:bg-green-500 rounded-lg text-sm font-semibold ml-auto transition text-white cursor-pointer opacity-100 shadow-lg';
+      } else {
+        nextBtn.disabled = true;
+        nextBtn.className = 'px-5 py-2.5 bg-gray-600 rounded-lg text-sm font-semibold ml-auto transition text-gray-300 cursor-not-allowed opacity-50';
+      }
+    }
 
-            const btn = document.getElementById('btnSubmitWorker');
-            btn.disabled = true;
-            btn.innerText = 'Анализ через ИИ...';
+    function updateWizardUI() {
+      for (let i = 1; i <= 3; i++) {
+        document.getElementById(`step${i}`).classList.add('hidden');
+      }
+      document.getElementById(`step${currentWizardStep}`).classList.remove('hidden');
 
-            setTimeout(async () => {
-                const task = tasksStorage.find(t => t.id === id);
-                if (task) {
-                    task.status = 'done';
-                    task.ai_score = '98.5%';
-                    task.ai_verdict = 'ИИ подтверждает: замена элементов и заправка выполнены согласно техническому заданию.';
+      const titles = [
+        'Шаг 1: Локация и оборудование',
+        'Шаг 2: Исполнитель, Сроки и Описание',
+        'Шаг 3: Инструктаж и Lessons Learned'
+      ];
+      document.getElementById('wizardStepTitle').innerText = titles[currentWizardStep - 1];
 
-                    const box = document.getElementById('aiResultBox');
-                    box.style.display = 'block';
-                    document.getElementById('resScore').innerText = 'Оценка ИИ: ' + task.ai_score;
-                    document.getElementById('resText').innerText = task.ai_verdict;
-                    document.getElementById('parts').value = '';
-                    document.getElementById('photoInput').value = '';
-                    document.getElementById('fileLabel').innerText = '📷 Нажмите для выбора фото или снимка';
-                }
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
 
-                btn.disabled = false;
-                btn.innerText = 'Отправить на ИИ-экспертизу';
-                renderTasks();
-            }, 800);
-        }
+      prevBtn.classList.toggle('hidden', currentWizardStep === 1);
+      
+      if (currentWizardStep === 3) {
+        nextBtn.innerText = 'Выдать наряд ✓';
+        validateStep3();
+      } else {
+        nextBtn.disabled = false;
+        nextBtn.innerText = 'Далее →';
+        nextBtn.className = 'px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-semibold ml-auto transition cursor-pointer opacity-100';
+      }
+    }
 
-        function renderTasks() {
-            const tasks = tasksStorage;
+    function createTask() {
+      const eqSelect = document.getElementById('wizEquipment');
+      const catSelect = document.getElementById('wizCategory');
+      const selectedCatOption = catSelect.options[catSelect.selectedIndex];
 
-            document.getElementById('statTotal').innerText = tasks.length;
-            const newCount = tasks.filter(t => t.status === 'new').length;
-            const doneCount = tasks.filter(t => t.status === 'done').length;
-            document.getElementById('statPending').innerText = newCount;
-            document.getElementById('statDone').innerText = doneCount;
-            document.getElementById('cntNew').innerText = newCount;
-            document.getElementById('cntDone').innerText = doneCount;
+      const deadlineInput = document.getElementById('wizDeadline').value;
+      const deadlineDate = deadlineInput ? deadlineInput : new Date(Date.now() + 4*3600*1000).toISOString();
 
-            const cNew = document.getElementById('colNew');
-            const cDone = document.getElementById('colDone');
-            cNew.innerHTML = '';
-            cDone.innerHTML = '';
+      const newTask = {
+        id: Math.max(...tasksStorage.map(t => t.id)) + 1,
+        equipment: eqSelect.value,
+        worker: document.getElementById('wizWorker').value || 'Не назначен',
+        desc: document.getElementById('wizDesc').value || 'Выполнение плановых работ согласно регламенту',
+        category: catSelect.value,
+        risk: selectedCatOption.getAttribute('data-risk'),
+        deadline: deadlineDate,
+        status: 'new',
+        x: Math.floor(Math.random() * (90 - 10) + 10),
+        y: Math.floor(Math.random() * (80 - 20) + 20),
+        photo: null, aiScore: null, aiBoxes: []
+      };
 
-            const select = document.getElementById('taskSelect');
-            select.innerHTML = '<option value="">-- Выберите наряд --</option>';
+      tasksStorage.push(newTask);
+      closeWizard();
+      renderApp();
+      document.getElementById('wizardForm').reset();
+    }
 
-            tasks.forEach(t => {
-                if (t.status === 'new') {
-                    select.innerHTML += `<option value="${t.id}">Наряд #${t.id} — ${escapeHtml(t.equipment)} (${escapeHtml(t.worker)})</option>`;
-                }
+    function exportPDF(taskId) {
+      const task = tasksStorage.find(t => t.id === taskId);
+      if (!task) return;
 
-                const cardHtml = `
-                    <div class="task-card">
-                        <div class="task-id">НАРЯД #${t.id}</div>
-                        <div class="task-title">${escapeHtml(t.equipment)}</div>
-                        <div class="task-desc">${escapeHtml(t.description)}</div>
-                        <div style="font-size:0.75rem; color: var(--text-muted); margin-bottom: 0.5rem;">Исполнитель: ${escapeHtml(t.worker)}</div>
-                        ${t.status === 'new' 
-                            ? `<span class="badge badge-pending">В процессе</span>` 
-                            : `<span class="badge badge-success">Проверено ИИ</span>`}
-                        ${t.ai_score ? `
-                            <div class="ai-verdict-box">
-                                <div class="ai-score">🤖 Точность: ${escapeHtml(t.ai_score)}</div>
-                                <div>${escapeHtml(t.ai_verdict)}</div>
-                            </div>
-                        ` : ''}
-                    </div>
-                `;
+      document.getElementById('pdfId').innerText = task.id;
+      document.getElementById('pdfDate').innerText = new Date().toLocaleDateString('ru-RU');
+      document.getElementById('pdfEq').innerText = task.equipment;
+      document.getElementById('pdfWorker').innerText = task.worker;
+      document.getElementById('pdfDesc').innerText = task.desc;
+      document.getElementById('pdfRisk').innerText = task.risk === 'high' ? 'Высокий' : (task.risk === 'medium' ? 'Средний' : 'Низкий');
+      document.getElementById('pdfDeadline').innerText = new Date(task.deadline).toLocaleString('ru-RU');
+      
+      const pdfVerdict = document.getElementById('pdfVerdict');
+      if (task.aiScore) {
+        document.getElementById('pdfScore').innerText = task.aiScore;
+        pdfVerdict.innerText = 'СООТВЕТСТВУЕТ ТБ';
+        pdfVerdict.className = 'font-bold text-green-700';
+      } else {
+        document.getElementById('pdfScore').innerText = '--';
+        pdfVerdict.innerText = 'НЕ ПРОВЕРЕНО';
+        pdfVerdict.className = 'font-bold text-gray-500';
+      }
+      
+      const failed = (task.aiChecks || []).filter(c => !c.ok).map(c => c.name);
+      document.getElementById('pdfAiNote').innerText = task.aiChecks
+        ? 'Анализ фотофиксации: ' + task.aiChecks.filter(c => c.ok).map(c => c.name).join(', ') + ' — обнаружены.' + (failed.length ? ' Не обнаружены: ' + failed.join(', ') + '. Принято мастером.' : '')
+        : '';
+      document.getElementById('pdfSignWorker').innerText = task.worker.split(' ').map((n,i)=>i===0?n:n[0]+'.').join(' ');
 
-                if (t.status === 'new') cNew.innerHTML += cardHtml;
-                if (t.status === 'done') cDone.innerHTML += cardHtml;
-            });
-        }
+      const element = document.getElementById('pdfTemplate');
+      element.classList.remove('hidden');
 
-        function escapeHtml(str) {
-            if (!str) return '';
-            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-        }
+      const opt = {
+        margin:       10,
+        filename:     `Naryad_AI_${task.id}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
 
-        renderTasks();
-    </script>
+      html2pdf().set(opt).from(element).save().then(() => {
+        element.classList.add('hidden');
+      });
+    }
+
+    // ===== НОВОЕ: ПРОВЕРКА МАСТЕРОМ ПОСЛЕ ИИ-АНАЛИЗА =====
+    let reportTaskId = null;
+
+    function esc(str) {
+      return String(str == null ? '' : str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.innerText = msg;
+      el.classList.remove('hidden');
+      clearTimeout(showToast.h);
+      showToast.h = setTimeout(() => el.classList.add('hidden'), 2800);
+    }
+
+    function renderReviewBanner() {
+      const el = document.getElementById('reviewBanner');
+      const pending = tasksStorage.filter(t => t.status === 'review' && t.aiState === 'ready');
+      if (!pending.length) { el.classList.add('hidden'); return; }
+      el.classList.remove('hidden');
+      el.innerHTML = `
+        <div class="flex items-center gap-3">
+          <span class="text-2xl">📥</span>
+          <div>
+            <p class="font-semibold">Отчёты ждут вашего решения: ${pending.length}</p>
+            <p class="text-xs text-purple-200/80">${pending.map(t => '#' + t.id).join(', ')} — проверьте фото и результат ИИ</p>
+          </div>
+        </div>
+        <button onclick="openReport(${pending[0].id})" class="shrink-0 bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition shadow">
+          Открыть отчёт #${pending[0].id}
+        </button>`;
+    }
+
+    function openReport(id) {
+      const t = tasksStorage.find(x => x.id === id);
+      if (!t || !t.photo) return;
+      reportTaskId = id;
+
+      const pending = t.status === 'review';
+      const checks = t.aiChecks || [];
+      const failed = checks.filter(c => !c.ok);
+      const sc = t.aiScore || 0;
+      const col = failed.length ? (sc >= 80 ? '#eab308' : '#ef4444') : '#22c55e';
+      const sent = t.sentAt ? new Date(t.sentAt).toLocaleString('ru-RU') : '—';
+
+      document.getElementById('reportSubtitle').innerText = `Наряд #${t.id} · ${t.equipment}`;
+      document.getElementById('reportBody').innerHTML = `
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          <div class="lg:col-span-3 space-y-3">
+            <h5 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Фото-подтверждение исполнителя</h5>
+            <div class="relative w-full h-72 rounded-xl overflow-hidden border border-gray-700 bg-black shadow-inner">
+              <img src="${t.photo}" class="w-full h-full object-cover">
+              ${(t.aiBoxes || []).map(b => `<div class="bbox ${b.class}" style="top:${b.top};left:${b.left};width:${b.w};height:${b.h}">${b.label}</div>`).join('')}
+              <div class="absolute top-2 left-2 bg-black/65 text-white text-[11px] px-2 py-1 rounded-md">📷 ${esc(t.worker)} · ${sent}</div>
+            </div>
+            <div class="grid grid-cols-2 gap-3 text-xs">
+              <div class="bg-gray-800/70 border border-gray-700 rounded-lg p-3"><span class="text-gray-400">Исполнитель</span><p class="font-semibold text-gray-100 mt-0.5">👷 ${esc(t.worker)}</p></div>
+              <div class="bg-gray-800/70 border border-gray-700 rounded-lg p-3"><span class="text-gray-400">Вид работ</span><p class="font-semibold text-gray-100 mt-0.5 uppercase">${esc(t.category)} · риск ${t.risk === 'high' ? 'высокий' : (t.risk === 'medium' ? 'средний' : 'низкий')}</p></div>
+              <div class="col-span-2 bg-gray-800/70 border border-gray-700 rounded-lg p-3"><span class="text-gray-400">Описание работ</span><p class="text-gray-100 mt-0.5">${esc(t.desc)}</p></div>
+            </div>
+          </div>
+
+          <div class="lg:col-span-2 space-y-4">
+            <h5 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Результат ИИ-анализа</h5>
+            <div class="flex items-center gap-4">
+              <div class="w-28 h-28 shrink-0 rounded-full grid place-items-center" style="background: conic-gradient(${col} ${sc * 3.6}deg, rgba(148,163,184,.25) 0)">
+                <div class="card w-20 h-20 rounded-full grid place-items-center text-2xl font-black" style="color:${col}">${sc}%</div>
+              </div>
+              <div>
+                <p class="text-xs text-gray-400">Safety Score</p>
+                <span class="inline-block mt-1 px-2.5 py-1 rounded-full text-xs font-bold ${failed.length ? 'bg-amber-500/15 text-amber-300 border border-amber-500/40' : 'bg-green-500/15 text-green-400 border border-green-500/40'}">
+                  ${failed.length ? '⚠ Есть замечания' : '✅ Соответствует ТБ'}
+                </span>
+              </div>
+            </div>
+            <p class="text-sm ${failed.length ? 'text-amber-200' : 'text-green-300'}">${esc(t.aiVerdict)}</p>
+            <ul class="space-y-2">
+              ${checks.map(c => `
+                <li class="flex items-center justify-between px-3 py-2 rounded-lg border text-sm ${c.ok ? 'bg-green-500/10 border-green-500/30 text-green-300' : 'bg-red-500/10 border-red-500/40 text-red-300'}">
+                  <span>${c.ok ? '✓' : '✗'} ${c.name}</span>
+                  <span class="text-xs opacity-80">${c.ok ? 'уверенность ' + c.conf + '%' : 'не обнаружено'}</span>
+                </li>`).join('')}
+            </ul>
+          </div>
+        </div>
+
+        ${pending ? `
+          <div class="mt-6 pt-5 border-t border-gray-700 space-y-3">
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Комментарий мастера (уйдёт исполнителю при переотчёте)</label>
+            <textarea id="reportComment" rows="2" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none text-white" placeholder="Например: сделайте фото крупнее, чтобы были видны перчатки">${failed.length ? esc('Не видно: ' + failed.map(c => c.name).join(', ') + '. Переснимите фото.') : ''}</textarea>
+            <div class="flex flex-col sm:flex-row gap-3 sm:justify-end">
+              <button onclick="reworkReport()" class="px-5 py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold text-sm transition shadow">↩ Отправить на переотчёт</button>
+              <button onclick="approveReport()" class="px-5 py-3 rounded-xl bg-green-600 hover:bg-green-500 text-white font-semibold text-sm transition shadow">✅ Одобрить</button>
+            </div>
+          </div>
+        ` : `
+          <div class="mt-6 pt-5 border-t border-gray-700 text-sm text-green-400 font-semibold">✅ Отчёт одобрен мастером${t.approvedAt ? ' · ' + new Date(t.approvedAt).toLocaleString('ru-RU') : ''}</div>
+        `}
+      `;
+      document.getElementById('reportModal').classList.remove('hidden');
+    }
+
+    function closeReport() {
+      document.getElementById('reportModal').classList.add('hidden');
+      reportTaskId = null;
+    }
+
+    function approveReport() {
+      const t = tasksStorage.find(x => x.id === reportTaskId);
+      if (!t) return;
+      t.status = 'done';
+      t.approvedAt = new Date().toISOString();
+      closeReport();
+      renderApp();
+      showToast(`Наряд #${t.id} одобрен и завершён`);
+    }
+
+    function reworkReport() {
+      const t = tasksStorage.find(x => x.id === reportTaskId);
+      if (!t) return;
+      const note = document.getElementById('reportComment').value.trim() || 'Переснимите фотоотчёт: СИЗ и зона работ должны быть полностью в кадре.';
+      if (t.photo) URL.revokeObjectURL(t.photo);
+      t.status = 'in_progress';
+      t.reworkNote = note;
+      t.photo = null; t.aiScore = null; t.aiBoxes = []; t.aiChecks = null; t.aiVerdict = null; t.aiState = null;
+      closeReport();
+      renderApp();
+      showToast(`Наряд #${t.id} возвращён исполнителю на переотчёт`);
+    }
+
+    function switchRole(role) {
+      currentRole = role;
+      const isMaster = role === 'master';
+      document.getElementById('masterView').classList.toggle('hidden', !isMaster);
+      document.getElementById('workerView').classList.toggle('hidden', isMaster);
+      renderApp();
+    }
+
+    function changeTheme(themeClass) {
+      document.body.className = `${themeClass} min-h-screen antialiased`;
+    }
+
+    setInterval(() => {
+      updateTimersOnly();
+    }, 1000);
+
+    window.onload = () => {
+      updateDateInput();
+      renderApp();
+    };
+  </script>
 </body>
 </html>
