@@ -94,7 +94,7 @@
         </div>
       </div>
 
-      <!-- НОВОЕ: БАННЕР ОТЧЁТОВ НА ПРОВЕРКЕ -->
+      <!-- БАННЕР: ОТЧЁТЫ ЖДУТ РЕШЕНИЯ -->
       <div id="reviewBanner" class="hidden flex items-center justify-between gap-4 p-4 rounded-xl border border-purple-500/50 bg-purple-500/10 shadow-lg"></div>
 
       <!-- KANBAN-ДОСКА -->
@@ -258,7 +258,7 @@
     </div>
   </div>
 
-  <!-- НОВОЕ: МОДАЛКА ОТЧЁТА ИИ-ПРОВЕРКИ -->
+  <!-- МОДАЛКА ОТЧЁТА ИИ-ПРОВЕРКИ -->
   <div id="reportModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4 overflow-y-auto">
     <div class="card max-w-4xl w-full rounded-2xl border border-gray-700 shadow-2xl my-auto">
       <div class="p-5 border-b border-gray-700 flex justify-between items-center bg-gray-800/50 rounded-t-2xl">
@@ -272,7 +272,6 @@
     </div>
   </div>
 
-  <!-- НОВОЕ: TOAST -->
   <div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white border border-gray-700 px-4 py-3 rounded-xl shadow-2xl text-sm z-[70]"></div>
 
   <!-- ШАБЛОН ДЛЯ PDF -->
@@ -497,7 +496,11 @@
       if (isDone) return { text: 'Завершено в срок', expired: false, isDone: true };
       
       const diff = new Date(deadlineStr) - new Date();
-      if (diff <= 0) { return { text: '⚠️ Просрочено!', expired: true, isDone: false }; }      const totalSecs = Math.floor(diff / 1000);
+      if (diff <= 0) {
+        return { text: '⚠️ Просрочено!', expired: true, isDone: false };
+      }
+
+      const totalSecs = Math.floor(diff / 1000);
       const days = Math.floor(totalSecs / 86400);
       const hours = Math.floor((totalSecs % 86400) / 3600);
       const mins = Math.floor((totalSecs % 3600) / 60);
@@ -673,7 +676,7 @@
                 <h5 class="text-xs font-semibold text-gray-300 uppercase tracking-wider">Фотофиксация и ИИ-анализ СИЗ</h5>
                 <div class="text-center py-8 bg-gray-800 rounded-lg border border-gray-700 space-y-2">
                   <div class="animate-spin inline-block w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full"></div>
-                  <p class="text-xs text-blue-400 font-medium">ИИ анализирует выбранное фото...</p>
+                  <p class="text-xs text-blue-400 font-medium">Gemini анализирует фото...</p>
                 </div>
               </div>
             `;
@@ -768,7 +771,8 @@
       });
     }
 
-    function handleTaskFileSelect(event, taskId) {
+    // ===== GEMINI-АНАЛИЗ ЧЕРЕЗ БЭКЕНД (защищённая версия) =====
+    async function handleTaskFileSelect(event, taskId) {
       const file = event.target.files[0];
       if (!file) return;
 
@@ -782,31 +786,60 @@
       task.aiState = 'analyzing';
       renderApp();
 
-      setTimeout(() => {
-        const glovesOk = Math.random() > 0.25;
-        const conf = () => Math.floor(Math.random() * 8 + 91);
+      const formData = new FormData();
+      formData.append('photo', file);
 
-        task.aiChecks = [
-          { name: 'Каска', ok: true, conf: conf() },
-          { name: 'Жилет', ok: true, conf: conf() },
-          { name: 'Перчатки', ok: glovesOk, conf: glovesOk ? conf() : 0 },
-          { name: 'Ограждение зоны', ok: true, conf: conf() }
-        ];
-        task.aiScore = glovesOk ? Math.floor(Math.random() * 8 + 92) : Math.floor(Math.random() * 8 + 76);
-        task.aiVerdict = glovesOk
-          ? 'СИЗ обнаружены, зона ограждена. Нарушений не выявлено.'
-          : 'Перчатки не обнаружены в кадре. Рекомендуется переотчёт.';
-        task.aiBoxes = [
-          { label: 'Каска ✓', class: 'bbox-helmet', top: '15%', left: '42%', w: '15%', h: '12%' },
-          { label: 'Жилет ✓', class: 'bbox-vest', top: '30%', left: '38%', w: '25%', h: '35%' }
-        ];
-        if (glovesOk) task.aiBoxes.push({ label: 'Перчатки ✓', class: 'bbox-glove', top: '62%', left: '28%', w: '16%', h: '12%' });
+      try {
+        const resp = await fetch(`/api/tasks/${taskId}/analyze`, {
+          method: 'POST',
+          body: formData
+        });
 
+        // Пытаемся прочитать JSON. Если не получилось — читаем как текст.
+        let data = null;
+        try {
+          data = await resp.json();
+        } catch (parseErr) {
+          const txt = await resp.text();
+          throw new Error(`HTTP ${resp.status}: ${txt || 'пустой ответ'}`);
+        }
+
+        if (!resp.ok) {
+          throw new Error(data?.detail || `HTTP ${resp.status}`);
+        }
+
+        if (!data || !data.task) {
+          throw new Error(data?.detail || 'Сервер не вернул данные задачи');
+        }
+
+        const t = data.task;
+
+        task.aiScore = t.ai_score;
+        task.aiChecks = t.ai_checks;
+        task.aiVerdict = t.ai_verdict;
         task.aiState = 'ready';
         task.sentAt = new Date().toISOString();
+        task.aiBoxes = t.ai_boxes || [];
+
         renderApp();
-        showToast(`Отчёт по наряду #${task.id} отправлен мастеру на проверку`);
-      }, 2500);
+        showToast(`Отчёт по наряду #${task.id} отправлен мастеру`);
+
+      } catch (err) {
+        console.error('Gemini analyze error:', err);
+
+        task.aiState = 'ready';
+        task.aiScore = 0;
+        task.aiVerdict = 'Ошибка ИИ-анализа: ' + err.message;
+        task.aiChecks = [
+          { name: 'Каска', ok: false, conf: 0 },
+          { name: 'Жилет', ok: false, conf: 0 },
+          { name: 'Перчатки', ok: false, conf: 0 },
+          { name: 'Ограждение зоны', ok: false, conf: 0 }
+        ];
+        task.aiBoxes = [];
+        renderApp();
+        showToast('Ошибка ИИ-анализа. Смотри консоль (F12).');
+      }
     }
 
     function openWizard() {
@@ -935,7 +968,7 @@
       
       const failed = (task.aiChecks || []).filter(c => !c.ok).map(c => c.name);
       document.getElementById('pdfAiNote').innerText = task.aiChecks
-        ? 'Анализ фотофиксации: ' + task.aiChecks.filter(c => c.ok).map(c => c.name).join(', ') + ' — обнаружены.' + (failed.length ? ' Не обнаружены: ' + failed.join(', ') + '. Принято мастером.' : '')
+        ? 'Анализ фотофиксации (Gemini): ' + task.aiChecks.filter(c => c.ok).map(c => c.name).join(', ') + ' — обнаружены.' + (failed.length ? ' Не обнаружены: ' + failed.join(', ') + '. Принято мастером.' : '')
         : '';
       document.getElementById('pdfSignWorker').innerText = task.worker.split(' ').map((n,i)=>i===0?n:n[0]+'.').join(' ');
 
@@ -955,7 +988,7 @@
       });
     }
 
-    // ===== НОВОЕ: ПРОВЕРКА МАСТЕРОМ ПОСЛЕ ИИ-АНАЛИЗА =====
+    // ===== ОТЧЁТ ИИ-ПРОВЕРКИ =====
     let reportTaskId = null;
 
     function esc(str) {
@@ -1018,7 +1051,7 @@
           </div>
 
           <div class="lg:col-span-2 space-y-4">
-            <h5 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Результат ИИ-анализа</h5>
+            <h5 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Результат ИИ-анализа (Gemini)</h5>
             <div class="flex items-center gap-4">
               <div class="w-28 h-28 shrink-0 rounded-full grid place-items-center" style="background: conic-gradient(${col} ${sc * 3.6}deg, rgba(148,163,184,.25) 0)">
                 <div class="card w-20 h-20 rounded-full grid place-items-center text-2xl font-black" style="color:${col}">${sc}%</div>
